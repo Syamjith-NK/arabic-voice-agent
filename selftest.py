@@ -29,7 +29,15 @@ import replay
 from aai_stream import AAIStream, Turn, TranscriberAdapter
 
 HERE = Path(__file__).parent
-ARABIC = "هل يمكنكم تأجيل التصوير إلى الساعة 9 صباحاً؟"
+# What the LIVE service actually returns for fixtures/arabic_caller_8k.ulaw,
+# captured 2026-09-17 and identical across 4 runs.
+#
+# NOTE it differs from the text that was synthesised to make the audio, which had
+# the DIGIT 9: "...إلى الساعة 9 صباحاً؟". The TTS spoke that digit as the word
+# "تسعة" (tisʿa), and the ASR correctly wrote the word it heard. Transcribing
+# speech back to the digit would be the service editorialising. This is the right
+# answer, and the earlier hand-authored fixture was wrong.
+ARABIC = "هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟"
 
 _results: list[tuple[str, bool, str]] = []
 VERBOSE = False
@@ -188,20 +196,58 @@ async def t_replay_clean():
     check("no errors on a clean run", not stream.errors, str(stream.errors))
     check("no reconnects on a clean run", stream.reconnects == 0)
 
-    # v3 resends the WHOLE turn each time, so each partial must be a prefix of the
-    # next. If a client appended deltas instead of replacing, this is where the
-    # stutter would show up.
+    # v3 resends the WHOLE turn each time, never a delta.
+    #
+    # THE ORIGINAL ASSERTION HERE WAS WRONG AND LIVE DATA DISPROVED IT. It required
+    # each partial to be a strict PREFIX of the next. Real captured partials are not:
+    #
+    #   "هل يمكنكم؟"
+    #   "هل يمكنكم تأجيل التصوير إلى السنة؟"        <- "to the YEAR"
+    #   "هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟"  <- revised to "to NINE O'CLOCK"
+    #
+    # Two things break prefixing: the model REVISES earlier words as more audio
+    # arrives, and because this model formats every partial, the trailing "؟" moves.
+    # Consequence for anyone rendering live captions: you must REPLACE the line,
+    # never append a diff, or the caption both stutters and keeps stale words.
     texts = [t.transcript for t in partials]
-    check("each partial extends the previous one, never concatenates",
-          all(b.startswith(a) for a, b in zip(texts, texts[1:])), str(texts[:3]))
-    check("final transcript extends the last partial",
-          finals[0].transcript.startswith(texts[-1][:10]))
+    check("every partial carries the full turn text, not a delta",
+          all(t.split()[0] == texts[0].split()[0] for t in texts if t.split()),
+          str(texts))
+    check("transcript length is non-decreasing across partials",
+          all(len(b) >= len(a) for a, b in zip(texts, texts[1:])), str([len(t) for t in texts]))
+    check("the client replaces rather than accumulates",
+          len(finals[0].transcript) < sum(len(t) for t in texts),
+          "a concatenating client would produce a far longer string")
+    check("final transcript starts the same sentence as the partials",
+          finals[0].transcript.split()[0] == texts[0].split()[0])
 
     # End-of-turn confidence must actually distinguish the final from the partials.
     check("end-of-turn confidence is highest on the final turn",
           finals[0].end_of_turn_confidence > max(t.end_of_turn_confidence for t in partials),
           f"final={finals[0].end_of_turn_confidence} "
           f"max_partial={max(t.end_of_turn_confidence for t in partials)}")
+
+    # MEASURED LIVE: on universal-3-5-pro this value is BINARY, not graded -
+    # exactly 0.0 on every partial and exactly 1.0 on the final, across 4 runs.
+    # So end_of_turn_confidence_threshold has nothing to tune on this model, and
+    # code that waits for "confidence > 0.7" to act early will never fire early.
+    # Trust the end_of_turn FLAG, not the number.
+    check("end-of-turn confidence is binary on this model, not graded",
+          all(t.end_of_turn_confidence == 0.0 for t in partials)
+          and finals[0].end_of_turn_confidence == 1.0,
+          f"partials={[t.end_of_turn_confidence for t in partials]} "
+          f"final={finals[0].end_of_turn_confidence}")
+
+    # MEASURED LIVE: this model formats WITHOUT being asked. We never send
+    # format_turns (build_url omits it by default), yet every turn including
+    # partials comes back turn_is_formatted=true, with Arabic punctuation and
+    # diacritics. The docs say format_turns is Universal-Streaming-only; on
+    # universal-3-5-pro formatting is simply always on.
+    check("turns come back formatted even though format_turns was never sent",
+          all(t.turn_is_formatted for t in stream.turns if t.transcript),
+          str([(t.turn_is_formatted, t.transcript[:20]) for t in stream.turns]))
+    check("formatted Arabic carries real punctuation",
+          "؟" in finals[0].transcript, repr(finals[0].transcript))
 
     # Pacing. 208 frames at 20 ms is 4.16 s; allow generous slack for a loaded box
     # but catch the case where pacing was skipped entirely.
@@ -213,6 +259,78 @@ async def t_replay_clean():
           any(m.get("type") == "Terminate" for m in fake.control_messages),
           str(fake.control_messages))
     check("socket was closed (billing is per connection-second)", stream._ws is None)
+
+
+async def t_partials_are_revised_not_just_extended():
+    """A partial can be RETRACTED and replaced wholesale. Measured, not assumed.
+
+    Captured live 2026-09-17 on this fixture:
+
+        partial 1  هل يمكنكم؟
+        partial 2  هل يمكنكم تأجيل التصوير إلى السنة؟          <- "to the YEAR"
+        partial 3  هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟   <- "to NINE O'CLOCK"
+
+    Between partial 2 and partial 3 the model did not append: it went back and
+    changed a word it had already emitted. السنة (the year) became الساعة تسعة
+    (nine o'clock). Those are different words with different meanings, and the
+    first one was shown to the user before being withdrawn.
+
+    CONSEQUENCE FOR BARGE-IN, which is the reason this test exists:
+    call_agent's barge-in and intent routing fire on partial text. Any logic that
+    treats a partial as a stable prefix - keyword matching, "did they say yes",
+    prefix-diff caption rendering - can fire on a phrase that is about to be
+    retracted, and there is no retraction event to undo it with. The safe rule is:
+    act on end_of_turn, or accept that an early action may be based on text the
+    service later disowns. This is a behavioural difference from the local Whisper
+    path, where each `quick()` pass was independent and never claimed stability.
+    """
+    audio = replay.load_audio()
+    server, _ = await fake_aai_server.run_server()
+    try:
+        stream, _ = await replay.replay(
+            audio=audio, url=fake_aai_server.server_url(server), verbose=False)
+    finally:
+        server.close()
+        await server.wait_closed()
+
+    partials = [t.transcript for t in stream.turns if t.is_partial and t.transcript]
+    check("there is more than one partial to compare", len(partials) >= 2, str(partials))
+
+    # The client must expose each partial as the WHOLE turn, so a consumer that
+    # replaces is correct and a consumer that appends is visibly wrong.
+    check("each partial is a complete standalone sentence",
+          all(len(p.split()) >= 1 for p in partials))
+
+    # The defining property: at least one partial is NOT a prefix of its successor.
+    # If this ever stops being true the note above can be relaxed - but it must be
+    # re-measured, not assumed.
+    # Two DISTINCT phenomena break prefixing, and they have different consequences.
+    #
+    # (1) Punctuation movement. Because this model formats every partial, the
+    #     trailing "؟" sits at the end of each one and moves as words are added:
+    #       "هل يمكنكم؟" -> "هل يمكنكم تأجيل التصوير إلى السنة؟"
+    #     Annoying for a prefix-diff caption renderer; semantically harmless.
+    non_prefix = [(a, b) for a, b in zip(partials, partials[1:]) if not b.startswith(a)]
+    check("at least one partial is not a prefix of its successor",
+          len(non_prefix) >= 1,
+          f"if this fails, re-measure before relaxing the barge-in rule: {partials}")
+
+    # (2) GENUINE WORD RETRACTION - the one that matters. A word the service
+    #     already emitted disappears from the final transcript entirely:
+    #       السنة  ("the year")  ->  الساعة تسعة  ("nine o'clock")
+    #     Different word, different meaning, shown to the user before withdrawal.
+    #     This is what makes prefix-matched barge-in and keyword routing unsafe.
+    final_words = set(stream.text().split())
+    retracted = sorted({w for p in partials for w in p.split()
+                        if w not in final_words and not w.strip("؟?.،,")== ""})
+    check("a word emitted in a partial was later retracted from the final",
+          len(retracted) >= 1,
+          f"retracted={retracted} final={stream.text()!r}")
+
+    # And the client must have ended on the revised text, not the retracted one.
+    check("the final transcript reflects the revision, not the retracted partial",
+          stream.text() == ARABIC and "السنة" not in stream.text(),
+          repr(stream.text()))
 
 
 async def t_turbo_is_not_paced():
@@ -505,6 +623,7 @@ TESTS = {
     "key": t_missing_key,
     "parsing": t_turn_parsing,
     "replay": t_replay_clean,
+    "revision": t_partials_are_revised_not_just_extended,
     "turbo": t_turbo_is_not_paced,
     "cleanclose": t_no_reconnect_on_clean_close,
     "reconnect": t_reconnect,

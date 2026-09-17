@@ -99,6 +99,37 @@ DEFAULT_IDLE_TIMEOUT_S = 30.0    # shut an unused socket; billing is per connect
 DEFAULT_MAX_RETRIES = 4
 RETRY_BACKOFF_S = (0.5, 2.0, 6.0, 15.0)   # free tier allows 5 new connections/min
 
+# ---------------------------------------------------------------------------
+# MEASURED 2026-09-17 AGAINST THE LIVE SERVICE, NOT READ IN A DOC.
+#
+# v3 REJECTS a Twilio-native 20 ms frame:
+#     {"type":"Error","error_code":3007,
+#      "error":"Input Duration Error: Input Duration Violation: 20.0 ms.
+#               Expected between 50 and 1000 ms"}
+# and CLOSES the socket with code 3007 when it happens.
+#
+# This refutes the obvious design. Twilio Media Streams delivers 160-byte /
+# 20 ms frames, and the whole "forward it byte-for-byte" premise assumed they
+# could go straight onto the socket. They cannot. They have to be AGGREGATED
+# first. The bytes are still never resampled or re-encoded - mu-law in, mu-law
+# out - but they are buffered.
+#
+# The cost is real and must be stated: buffering to 100 ms adds up to 100 ms
+# before the ASR sees the audio. That is a genuine addition to stage 1. It is
+# small next to the 3.9-16.9 s LLM turn, but it is not free and it is not zero.
+#
+# 8 kHz mu-law is 1 byte per sample = 8000 bytes/sec.
+MIN_CHUNK_MS = 50           # service minimum (measured)
+MAX_CHUNK_MS = 1000         # service maximum (measured)
+DEFAULT_CHUNK_MS = 100      # our choice: safely inside the floor, still low latency
+BYTES_PER_MS = 8            # 8000 bytes/sec / 1000
+MULAW_SILENCE = 0xFF        # mu-law encoding of amplitude zero
+
+# Error codes that are deterministic: retrying the same audio produces the same
+# failure. Reconnecting on these burns connections against the 5/min cap and
+# spends money to fail identically, so they are treated as fatal.
+FATAL_ERROR_CODES = {3007}
+
 
 class AssemblyAIKeyMissing(RuntimeError):
     """Raised instead of letting a FileNotFoundError traceback escape."""
@@ -250,6 +281,7 @@ class AAIStream:
         end_of_turn_confidence_threshold: float | None = None,
         insecure: bool = False,
         auto_load_key: bool = True,
+        chunk_ms: int = DEFAULT_CHUNK_MS,
     ):
         self.language = language
         self.on_turn = on_turn
@@ -298,6 +330,21 @@ class AAIStream:
         # on the free tier's 5-new-connections-per-minute cap it would rate-limit a
         # normal conversation.
         self._terminated = False
+
+        # Aggregation buffer. Twilio's 20 ms frames are too short for v3 (3007),
+        # so they accumulate here until a legal chunk exists.
+        if not (MIN_CHUNK_MS <= chunk_ms <= MAX_CHUNK_MS):
+            raise ValueError(
+                f"chunk_ms={chunk_ms} is outside the range the service accepts "
+                f"({MIN_CHUNK_MS}-{MAX_CHUNK_MS} ms). Measured against the live "
+                f"API on 2026-09-17: a 20 ms Twilio frame is rejected with "
+                f"error_code 3007 and the socket is closed."
+            )
+        self.chunk_bytes = chunk_ms * BYTES_PER_MS
+        self.min_chunk_bytes = MIN_CHUNK_MS * BYTES_PER_MS
+        self._buf = bytearray()
+        self.chunks_sent = 0
+        self.fatal_error: str | None = None
 
         # Observability. latency.py reads these; nothing else mutates them.
         self.connected_at: float | None = None
@@ -389,21 +436,50 @@ class AAIStream:
         self.last_audio_at = now
         self.bytes_sent += len(payload)
         self.frames_sent += 1
+
+        # Aggregate. A raw 20 ms Twilio frame is rejected by the service, so
+        # frames accumulate until at least one legal chunk is available.
+        self._buf.extend(payload)
+        while len(self._buf) >= self.chunk_bytes:
+            chunk = bytes(self._buf[:self.chunk_bytes])
+            del self._buf[:self.chunk_bytes]
+            await self._send_chunk(chunk)
+
+    async def _send_chunk(self, chunk: bytes) -> None:
         gen = self._conn_gen
         try:
-            await self._ws.send(payload)            # binary frame, raw mu-law
+            await self._ws.send(chunk)              # binary frame, raw mu-law
+            self.chunks_sent += 1
         except Exception as exc:                    # noqa: BLE001
             self.errors.append(f"send: {exc!r}")
-            if self._closing:
-                raise
+            if self._closing or self.fatal_error:
+                return
             if not await self._reconnect(seen_gen=gen):
-                raise
+                return
             try:
-                await self._ws.send(payload)
+                await self._ws.send(chunk)
+                self.chunks_sent += 1
             except Exception as exc2:               # noqa: BLE001
-                # One retry only. Retrying forever here would resend the same
-                # 20 ms of audio into every new socket we open.
+                # One retry only. Retrying forever would resend the same audio
+                # into every new socket we open.
                 self.errors.append(f"send after reconnect: {exc2!r}")
+
+    async def _flush(self) -> None:
+        """Send whatever is left in the buffer at end of turn.
+
+        A remainder shorter than the 50 ms floor is PADDED WITH MU-LAW SILENCE
+        rather than dropped. Dropping it would clip the end of the final word;
+        padding with true zero-amplitude samples adds no sound and cannot invent
+        a word. mu-law 0xFF is amplitude zero, confirmed against the G.711 decode
+        table (index 255 -> 0).
+        """
+        if not self._buf or self._ws is None:
+            return
+        chunk = bytes(self._buf)
+        self._buf.clear()
+        if len(chunk) < self.min_chunk_bytes:
+            chunk += bytes([MULAW_SILENCE]) * (self.min_chunk_bytes - len(chunk))
+        await self._send_chunk(chunk)
 
     async def feed_twilio_media(self, message: dict) -> None:
         """Convenience for the media-stream server: takes the decoded Twilio JSON
@@ -424,6 +500,9 @@ class AAIStream:
         """
         if self._ws is None:
             return None
+        # Push the tail of the buffer BEFORE terminating, or the last partial
+        # chunk of the caller's final word is never transcribed.
+        await self._flush()
         self._turn_done.clear()
         # Mark BEFORE sending: the service can close the socket the moment it has
         # flushed, and the read loop must already know that close is expected.
@@ -489,6 +568,14 @@ class AAIStream:
             self._turn_done.set()
         elif mtype == "Error" or "error" in m:
             self.errors.append(str(m.get("error") or m))
+            code = m.get("error_code")
+            if code in FATAL_ERROR_CODES:
+                # Deterministic: the same audio will fail the same way. Retrying
+                # spends a connection (billed, and against a 5/min cap) to get an
+                # identical failure. Stop and surface it instead.
+                self.fatal_error = f"error_code {code}: {m.get('error')}"
+                self._terminated = True
+                self._turn_done.set()
             await self._emit("error", m)
         else:
             await self._emit(mtype.lower() or "unknown", m)
