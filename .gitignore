@@ -1,0 +1,24 @@
+# Never commit credentials. The AssemblyAI key is read from
+# ~/jarvis/.credentials/assemblyai_key, outside this tree, on purpose.
+*.key
+*_key
+.credentials/
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Run artifacts. Fixtures under fixtures/ ARE committed; these are not.
+out/
+runs/
+*.log
+latency_*.jsonl
+
+# macOS
+.DS_Store
