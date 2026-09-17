@@ -22,3 +22,6 @@ latency_*.jsonl
 
 # macOS
 .DS_Store
+
+# internal machine inventory - never publish
+ASSETS.md
