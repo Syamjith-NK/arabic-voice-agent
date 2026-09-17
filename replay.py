@@ -60,6 +60,44 @@ def frames_of(data: bytes) -> list[bytes]:
     return [f for f in out if f]
 
 
+def speech_end_frame(data: bytes, threshold: float = 0.01) -> int:
+    """Index of the LAST frame that actually contains speech.
+
+    Endpoint lag means "caller stopped talking -> ASR committed the turn". The
+    moment the caller stopped talking is NOT the moment the audio stream ended:
+    this fixture carries 200 ms of trailing silence, and a real call carries as
+    much as the speaker leaves. Measuring from the end of the stream therefore
+    UNDERSTATES endpoint lag - it flatters the number, which is the dangerous
+    direction for a latency claim.
+
+    The 0.01 RMS gate is the same one call_agent/simulate_twilio.py already uses to
+    trim its synthesised caller audio, so both harnesses agree on where speech ends.
+
+    Falls back to the last frame if nothing clears the gate - silence in, no claim out.
+    """
+    import numpy as np
+    tbl = _decode_table()
+    pcm = tbl[np.frombuffer(data, dtype=np.uint8)].astype(np.float32) / 32768.0
+    n = len(frames_of(data))
+    loud = [i for i in range(n)
+            if len(pcm[i * FRAME:(i + 1) * FRAME])
+            and float(np.sqrt((pcm[i * FRAME:(i + 1) * FRAME] ** 2).mean())) > threshold]
+    return loud[-1] if loud else max(0, n - 1)
+
+
+def _decode_table():
+    """G.711 mu-law decode table. Vendored rather than imported from
+    call_agent/mulaw.py so this repo stands alone when a judge clones it."""
+    import numpy as np
+    t = np.empty(256, dtype=np.int16)
+    for i in range(256):
+        u = ~i & 0xFF
+        sign, exponent, mantissa = u & 0x80, (u >> 4) & 0x07, u & 0x0F
+        s = (((mantissa << 3) + 0x84) << exponent) - 0x84
+        t[i] = -s if sign else s
+    return t
+
+
 class Collector:
     """Records every turn with the local clock, which is what latency.py reads."""
 

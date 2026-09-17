@@ -287,6 +287,18 @@ class AAIStream:
         self._reconnect_lock = asyncio.Lock()
         self._conn_gen = 0
 
+        # Set once the session has ENDED NORMALLY - either we sent Terminate or the
+        # service sent Termination. A close after that is expected, not a failure.
+        #
+        # Without this the read loop reconnects a socket we are about to throw away.
+        # It only shows up when something takes time between finish() and close(),
+        # which on a real call is ALWAYS - the LLM turn sits in exactly that window.
+        # Measured: a clean replay with a 4 s answer stub produced 1 reconnect. That
+        # is a billable connection per turn on a per-connection-second service, and
+        # on the free tier's 5-new-connections-per-minute cap it would rate-limit a
+        # normal conversation.
+        self._terminated = False
+
         # Observability. latency.py reads these; nothing else mutates them.
         self.connected_at: float | None = None
         self.first_audio_at: float | None = None
@@ -333,7 +345,7 @@ class AAIStream:
         when you saw the failure; if the socket has already been replaced by
         whoever got here first, this returns True without opening a second one.
         """
-        if self._closing:
+        if self._closing or self._terminated:
             return False
         async with self._reconnect_lock:
             # Somebody already fixed it while we waited for the lock.
@@ -413,6 +425,9 @@ class AAIStream:
         if self._ws is None:
             return None
         self._turn_done.clear()
+        # Mark BEFORE sending: the service can close the socket the moment it has
+        # flushed, and the read loop must already know that close is expected.
+        self._terminated = True
         try:
             await self._ws.send(json.dumps({"type": "Terminate"}))
         except Exception as exc:                    # noqa: BLE001
@@ -468,6 +483,8 @@ class AAIStream:
             if t.end_of_turn:
                 self._turn_done.set()
         elif mtype == "Termination":
+            # The service has ended the session. Any close from here is expected.
+            self._terminated = True
             await self._emit("termination", m)
             self._turn_done.set()
         elif mtype == "Error" or "error" in m:
