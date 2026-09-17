@@ -277,6 +277,16 @@ class AAIStream:
         self._closing = False
         self._session_id: str | None = None
 
+        # Reconnect serialisation. BOTH the reader loop and feed()'s send-error
+        # handler notice a dropped socket, and without this they each open their
+        # own replacement: measured 3 reconnects for 1 injected drop. Against a
+        # service billed per connection-second and capped at 5 NEW connections per
+        # minute on the free tier, that is a live cost and rate-limit bug, not a
+        # tidiness issue. `_conn_gen` lets a latecomer see that somebody else
+        # already replaced the socket and skip its own attempt.
+        self._reconnect_lock = asyncio.Lock()
+        self._conn_gen = 0
+
         # Observability. latency.py reads these; nothing else mutates them.
         self.connected_at: float | None = None
         self.first_audio_at: float | None = None
@@ -310,27 +320,42 @@ class AAIStream:
             kw["ssl"] = ctx
         self._ws = await ws_connect(self._url, **kw)
         self.connected_at = time.monotonic()
+        self._conn_gen += 1
 
-    async def _reconnect(self) -> bool:
-        """Bounded, backed-off reconnect.
+    async def _reconnect(self, seen_gen: int | None = None) -> bool:
+        """Bounded, backed-off, and SERIALISED reconnect.
 
         Bounded on purpose. An unbounded retry loop against a per-connection-billed
         service with a 5-new-connections-per-minute cap is a way to spend money and
         get rate-limited at the same time.
+
+        Serialised on purpose too. Pass the connection generation you were using
+        when you saw the failure; if the socket has already been replaced by
+        whoever got here first, this returns True without opening a second one.
         """
-        for attempt in range(self.max_retries):
-            delay = RETRY_BACKOFF_S[min(attempt, len(RETRY_BACKOFF_S) - 1)]
-            await self._emit("reconnecting", {"attempt": attempt + 1, "delay_s": delay})
-            await asyncio.sleep(delay)
-            try:
-                await self._connect()
-                self.reconnects += 1
-                await self._emit("reconnected", {"attempt": attempt + 1})
+        if self._closing:
+            return False
+        async with self._reconnect_lock:
+            # Somebody already fixed it while we waited for the lock.
+            if seen_gen is not None and self._conn_gen > seen_gen:
                 return True
-            except Exception as exc:                      # noqa: BLE001
-                self.errors.append(f"reconnect {attempt + 1}: {exc!r}")
-        await self._emit("reconnect_failed", {"attempts": self.max_retries})
-        return False
+            if self._closing:
+                return False
+            for attempt in range(self.max_retries):
+                delay = RETRY_BACKOFF_S[min(attempt, len(RETRY_BACKOFF_S) - 1)]
+                await self._emit("reconnecting", {"attempt": attempt + 1, "delay_s": delay})
+                await asyncio.sleep(delay)
+                if self._closing:
+                    return False
+                try:
+                    await self._connect()
+                    self.reconnects += 1
+                    await self._emit("reconnected", {"attempt": attempt + 1})
+                    return True
+                except Exception as exc:                  # noqa: BLE001
+                    self.errors.append(f"reconnect {attempt + 1}: {exc!r}")
+            await self._emit("reconnect_failed", {"attempts": self.max_retries})
+            return False
 
     # -- audio in -----------------------------------------------------------
 
@@ -352,14 +377,21 @@ class AAIStream:
         self.last_audio_at = now
         self.bytes_sent += len(payload)
         self.frames_sent += 1
+        gen = self._conn_gen
         try:
             await self._ws.send(payload)            # binary frame, raw mu-law
         except Exception as exc:                    # noqa: BLE001
             self.errors.append(f"send: {exc!r}")
-            if not self._closing and await self._reconnect():
-                await self._ws.send(payload)
-            else:
+            if self._closing:
                 raise
+            if not await self._reconnect(seen_gen=gen):
+                raise
+            try:
+                await self._ws.send(payload)
+            except Exception as exc2:               # noqa: BLE001
+                # One retry only. Retrying forever here would resend the same
+                # 20 ms of audio into every new socket we open.
+                self.errors.append(f"send after reconnect: {exc2!r}")
 
     async def feed_twilio_media(self, message: dict) -> None:
         """Convenience for the media-stream server: takes the decoded Twilio JSON
@@ -395,8 +427,12 @@ class AAIStream:
 
     async def _read_loop(self) -> None:
         while not self._closing:
+            gen = self._conn_gen
+            ws = self._ws
+            if ws is None:
+                break
             try:
-                async for raw in self._ws:
+                async for raw in ws:
                     await self._handle(raw)
             except asyncio.CancelledError:
                 raise
@@ -404,8 +440,11 @@ class AAIStream:
                 self.errors.append(f"read: {exc!r}")
             if self._closing:
                 break
-            # Socket dropped mid-call. A phone call is still live, so try to get back.
-            if not await self._reconnect():
+            # Socket dropped mid-call. A phone call is still live, so try to get
+            # back - but pass the generation we were reading, so if feed() already
+            # replaced the socket we just pick up the new one instead of opening
+            # a third.
+            if not await self._reconnect(seen_gen=gen):
                 break
 
     async def _handle(self, raw) -> None:
