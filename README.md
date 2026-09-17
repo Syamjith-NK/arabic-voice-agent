@@ -78,8 +78,25 @@ that gap is the entire remaining problem.
 
 ## Status
 
-See `NOTES.md`. Short version: the client and the whole replay harness are built and tested
-against a fake server; **nothing has touched a live AssemblyAI socket yet, because there is no
-account.** Every claim about real API behaviour in this repo is labelled as unverified.
+See `NOTES.md`. Short version: **this has run against the live AssemblyAI v3 endpoint and
+transcribed real Arabic correctly.** 91/91 selftest checks pass. The fixtures are captured
+traffic, not guesses.
+
+Live measurements (3 runs, 4.15 s Arabic clip): time-to-first-partial **~1.26 s**,
+time-to-end-of-turn **~4.43 s**, endpoint lag **~490 ms**, 0 reconnects, 0 errors.
+
+Four things the live API does that the documentation did not tell us, all now encoded as tests:
+
+1. **Twilio's native 20 ms frame is rejected** (`error_code 3007`) — audio must be aggregated
+   to 50–1000 ms. This costs up to 100 ms of added latency.
+2. **Numbers come back as Arabic words** (`تسعة`), never digits — so nothing downstream can
+   parse times or quantities with a digit regex.
+3. **Partials are revised, not just extended** — `إلى السنة` ("to the year") became
+   `إلى الساعة تسعة` ("to nine o'clock"). Prefix-matched barge-in will fire on retracted text.
+4. **Arabic comes back fully punctuated and formatted**, on every partial, without ever sending
+   `format_turns`.
+
+Still not working: Fish TTS is out of credit so stage 3 is a stub, nothing is wired into
+`call_agent/server.py`, and the 4–17 s LLM turn is measured but untouched.
 
 MIT licensed.

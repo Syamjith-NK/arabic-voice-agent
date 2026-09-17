@@ -2,29 +2,31 @@
 
 Written 2026-09-17. Deadline 30 Sep 2026 19:00 GST.
 
-Read this before believing anything in the README. The short version:
+**Status changed during this build.** An API key arrived mid-session, so this is no longer a
+doc-driven guess: the client has run against the live AssemblyAI v3 endpoint, transcribed real
+Arabic, and the fixtures are now captured traffic rather than authored guesses.
 
-> **The client and the whole test harness are built and pass 81 checks. Nothing here
-> has ever touched a live AssemblyAI socket, because there is no account yet. Every
-> claim about how the real service behaves is unverified and labelled as such below.**
+> **Arabic realtime transcription over a Twilio-shaped 8 kHz mu-law stream WORKS, measured, on
+> `universal-3-5-pro`. Three live findings changed the design. The LLM turn remains untouched
+> and is still the whole latency problem. Fish TTS is out of credit, so stage 3 cannot be
+> measured today.**
 
 ---
 
 ## 1. What is built
 
-| File | Lines | State |
-|---|---|---|
-| `aai_stream.py` | ~470 | v3 streaming client. Persistent socket, callbacks, bounded reconnect, key loading. |
-| `fake_aai_server.py` | ~200 | Local fake v3 endpoint with fault injection. |
-| `replay.py` | ~250 | Paced replay driver + `--record` to capture real frames later. |
-| `latency.py` | ~330 | Three-stage turn budget. |
-| `selftest.py` | ~430 | 81 checks. Exits non-zero on failure. |
-| `make_fixture.py` | ~110 | Regenerates the protocol fixture. |
+| File | State |
+|---|---|
+| `aai_stream.py` | v3 streaming client. Persistent socket, callbacks, frame aggregation, bounded reconnect, fatal-error handling. |
+| `fake_aai_server.py` | Local fake v3 endpoint replaying **captured** frames, with fault injection. |
+| `replay.py` | Paced replay driver + `--live` + `--record`. |
+| `latency.py` | Three-stage turn budget. |
+| `selftest.py` | **91 checks. Exits non-zero on failure.** |
+| `make_fixture.py` | Regenerates the authored fixture (superseded by `--record`, kept for history). |
 
-Dependencies: **`numpy` and `websockets` only**, both already installed on this machine
-(system python3.14.7 has websockets 16.0 / numpy 2.4.6; `call_agent/.venv` has 17.0.1 / 2.5.2).
-Everything else is stdlib. **No new dependency was added.** `pytest` is deliberately not used —
-it is not installed anywhere here, and a test suite that cannot run is worse than none.
+Dependencies: **`numpy` and `websockets` only**, both already installed. Everything else is
+stdlib. **No new dependency was added.** `pytest` is deliberately unused — it is not installed
+on this machine, and a suite that cannot run is worse than none.
 
 ## 2. Actual selftest output
 
@@ -35,6 +37,7 @@ $ python3 selftest.py
   key ...
   parsing ...
   replay ...
+  revision ...
   turbo ...
   cleanclose ...
   reconnect ...
@@ -45,142 +48,238 @@ $ python3 selftest.py
   adapter ...
   latency ...
 
-  81/81 checks passed in 26.1s
+  91/91 checks passed in 29.7s
 
   PASS
 $ echo $?
 0
 ```
 
-The tests are mutation-tested, i.e. verified to actually fail when the bug they guard is
-reintroduced. Four mutations were run, all correctly caught with exit 1:
+Mutation-tested — verified to actually fail when the guarded bug is reintroduced. Four
+mutations run, all caught with exit 1:
 
 | Mutation | Caught by | Symptom |
 |---|---|---|
 | Add `Bearer ` to the auth header | `url` | `Authorization has NO Bearer prefix` |
 | Remove reconnect serialisation | `reconnect` | `2 reconnects - the feed/read race is back` |
 | Remove the `_terminated` flag | `cleanclose` | `1 reconnect(s) - an expected close is being retried` |
-| Restore the derived endpoint lag | `latency` | `endpoint_lag_ms is not negative -- -10.2` |
+| Restore derived endpoint lag | `latency` | `endpoint_lag_ms is not negative -- -10.2` |
 
-## 3. Three bugs found by running it
+## 3. Live measurements
 
-All three were found by executing the harness, not by reading code. They are the substance of
-what this build produced.
+Three consecutive live runs, same 4.15 s Arabic clip. **Stages 1 and 2 are real.** Stage 3 is a
+stub — see §6.
 
-**a. One socket drop opened three sockets.** `feed()`'s send-error path and `_read_loop()`'s
-error path both called `_reconnect()` with no mutual exclusion. On a service billed per
-connection-second with a free-tier cap of 5 new connections/minute, that is a cost and
-rate-limit bug. Fixed with a lock plus a connection-generation check. Measured 3 → 1.
+```
+  ACROSS 3 RUNS (ms)
+    stage                        min    median       max
+    1. to first partial       1152.2    1263.6    1474.7
+    2. to end of turn         4410.2    4432.9    4480.8
+    3. to first TTS byte      4410.4    4433.1    4481.0   <- STUB, not real
+       endpoint lag            469.5     490.8     539.7
+       LLM + TTS gap             0.1       0.2       0.2   <- STUB, not real
+```
 
-**b. Every clean turn opened a second, discarded, billable socket.** After `finish()` the
-service closes normally; the read loop treated that expected close as a failure and reconnected.
-This did **not** appear in the plain replay test, because there `close()` follows `finish()`
-immediately. It needs a delay in between — which on a real call is *always*, since the LLM turn
-sits in exactly that window. Surfaced only when `latency.py` ran with a 4 s answer stub.
-Measured 1 → 0.
+Reading these honestly:
 
-**c. The latency harness could report a negative number.** Endpoint lag was
-`to_end_of_turn_ms - audio_seconds*1000` — a recorded event minus a *derived* duration. The
-fixture's final frame is a 108-byte partial (13.5 ms) dispatched at t0+4.140 s while
-`audio_seconds` says 4.1535 s, producing −10.2 ms. Underneath that sat a worse error: it
-measured from end of *stream*, not end of *speech*, and the fixture has 200 ms of trailing
-silence, so it **understated** endpoint lag — it flattered the number. Now both `speech_end_at`
-and `audio_end_at` are stamped as real events, speech end located by an RMS gate using the same
-0.01 threshold `call_agent/simulate_twilio.py` already uses. Measured −10.2 ms → +200.6 ms.
+- **Time-to-first-partial ≈ 1.26 s.** Slower than the 100 ms aggregation buffer would suggest,
+  so the bulk of it is the service. This is the number that decides whether live captions feel
+  responsive.
+- **Time-to-end-of-turn ≈ 4.43 s** against 4.15 s of audio. Bounded below by how long the caller
+  spoke, so compare it to the speech duration, never to zero.
+- **Endpoint lag ≈ 490 ms** (last speech → turn committed). **This answers an open question:
+  `call_agent/vad.py` uses a 500 ms endpointing pause, so AssemblyAI's endpointer is
+  effectively a wash — neither an upgrade nor a regression.** Note the clip has 200 ms of
+  trailing silence, which the endpointer is entitled to use.
+- Every run: **0 reconnects, 0 errors**, identical transcript.
 
-## 4. Verified vs unverified
+## 4. The transcript, verified by reading it
 
-### Verified — I ran this and watched it work
+Returned, identically on 4 separate runs:
 
-- The client speaks the documented v3 protocol: `Begin`, `Turn` (partial and final),
-  `Termination`.
-- Partials **replace** rather than concatenate. Asserted: each partial is a prefix of the next.
-- `end_of_turn` fires exactly once and unblocks `finish()`.
-- End-of-turn confidence is highest on the final turn (0.931 vs max partial 0.144).
-- 8 kHz mu-law frames go out **byte-for-byte**, no resample: 33,228 bytes in, 33,228 received.
-- Odd-sized, merged and empty payloads are all handled (Twilio does split and merge).
-- A trailing partial frame is kept, not silently dropped.
-- Pacing is accurate: 208 frames × 20 ms = 4.16 s, final turn at 4,142.8 ms.
-- Reconnect works, is serialised, is bounded, and does **not** fire on an expected close.
-- A missing key produces an actionable message, never a traceback.
-- The three latency stages move independently (a 1.0 s stub → 1.0 s in stage 3 only).
-- The Arabic fixture is genuinely speech: RMS 0.1249, peak 0.855, energy across t=0–4 s.
+> هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟
 
-### Unverified — needs a live API key
+Checked rather than assumed:
 
-**None of the following has been tested. Do not state any of it as fact to a judge.**
+| Check | Result |
+|---|---|
+| Word count | 8 vs 8 in source |
+| Presentation-form codepoints (the corruption signature) | **0** |
+| Bidi control characters | **0** |
+| U+FFFD replacement characters | **0** |
+| First word | `هل` — the question particle, i.e. **logical order, not reversed** |
+| Final character | `؟` ARABIC QUESTION MARK |
+| Diacritics preserved | yes (tanween on `صباحاً`) |
 
-1. **That the URL is accepted at all.** Parameter names (`speech_model`, `language_codes`,
-   `encoding`, `sample_rate`) are taken from documentation. A single wrong name is a 400.
-2. **That `Authorization: <key>` with no Bearer is correct.** This is the single highest-risk
-   assumption in the repo. It is asserted in the tests, which means the tests encode a *belief*,
-   not a measurement. If it is wrong, one line changes and one test flips.
-3. **Whether Arabic comes back punctuated.** `format_turns` is documented as unavailable on
-   `universal-3-5-pro`, so the fixture sets `turn_is_formatted: false`. If the live service
-   formats anyway, the fixture is wrong. **This is explicitly listed as unknown, not assumed.**
-4. **Arabic transcription accuracy on 8 kHz phone-band audio.** Completely unmeasured. Arabic
-   ASR on a narrowband line is materially harder than on studio audio, and dialect (Gulf vs MSA)
-   is a further unknown. The fixture's "correct" transcript is the text we synthesised, so the
-   replay proves plumbing, **not accuracy**.
-5. **Real timing for stages 1 and 2.** Every millisecond in this repo is the fake server's
-   scripted timing. They measure the instrument, not the service.
-6. **End-of-turn behaviour.** Whether AssemblyAI's endpointer is faster or slower than the
-   existing 500 ms VAD pause in `call_agent/vad.py` decides whether this is an upgrade or a
-   regression for barge-in. Unknown.
-7. **Reconnect semantics mid-turn.** A reconnect opens a **new session with no memory of the
-   turn so far**, so the first half of a caller's sentence is lost. The fake papers over this
-   by restarting its script. This is a real product consequence and it is not solved.
-8. **Billing rate and idle cost.** "Billed per connection-duration" shaped the design; the
-   actual rate is unconfirmed.
+All eight words are correct Arabic in correct order. This is genuinely good output.
 
-## 5. What does not work yet
+## 5. Named constraints discovered live
+
+These are the findings that change how anything downstream must be written. They are
+constraints, not trivia.
+
+### CONSTRAINT 1 — Twilio's 20 ms frame is rejected. Audio must be aggregated.
+
+```
+error_code 3007: Input Duration Error: Input Duration Violation: 20.0 ms.
+                 Expected between 50 and 1000 ms
+```
+and the socket is **closed** with code 3007. This refuted the design's central premise. Frames
+are now buffered to 100 ms before sending. The bytes are still never resampled or re-encoded —
+mu-law in, mu-law out — but **up to 100 ms is added to stage 1, and that cost is real.**
+Also: 3007 is deterministic, so it is treated as fatal and never retried; the first run burned
+two reconnects failing identically.
+
+### CONSTRAINT 2 — Numbers come back as Arabic WORDS, never digits.
+
+The audio said "nine". The transcript says **`تسعة`** (tisʿa), not `9`.
+
+**Anything downstream that parses times, dates, quantities, prices or phone numbers must not
+expect digits.** A booking agent matching `\d{1,2}` against this transcript finds nothing. This
+needs an Arabic number-word parser (`واحد` … `تسعة`, `عشرين`, `مئة`, and compound forms like
+`الساعة تسعة والنصف`), and that parser does not exist in this repo or anywhere in the
+workspace. It is unbuilt work, not a detail.
+
+Note the asymmetry with TTS: `call_agent/tts_stream.normalise_numerals()` converts Arabic-Indic
+digits **to** Western digits on the way out, because Fish mispronounces `٢٠٢٦`. So the pipeline
+converts digits→words on output and receives words→never-digits on input. Both directions need
+handling and they are not symmetric.
+
+### CONSTRAINT 3 — Partials are REVISED, not merely extended. This breaks prefix logic.
+
+Captured live:
+
+```
+partial 1   هل يمكنكم؟
+partial 2   هل يمكنكم تأجيل التصوير إلى السنة؟            <- "to the YEAR"
+partial 3   هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟   <- "to NINE O'CLOCK"
+```
+
+Between partials 2 and 3 the service **went back and changed a word it had already emitted**.
+`السنة` (the year) became `الساعة تسعة` (nine o'clock) — different words, different meaning,
+shown before being withdrawn. There is no retraction event.
+
+**Consequence for barge-in, which is the sharp edge here.** `call_agent` fires barge-in and
+intent routing on partial text. Any logic that treats a partial as a stable prefix — keyword
+matching, "did they say yes", prefix-diff caption rendering — **can fire on a phrase the service
+is about to disown, and there is no way to take the action back.** The agent will have
+interrupted, or branched the script, on words the caller never said.
+
+This is a behavioural change from the local Whisper path, where each `quick()` pass was
+independent and never implied stability. The safe rule: **act on `end_of_turn`, or accept that
+an early action may rest on retracted text.** `t_partials_are_revised_not_just_extended`
+asserts this so it cannot silently stop being true.
+
+A second, milder cause of non-prefixing: because every partial is formatted, the trailing `؟`
+moves as words are appended. Harmless semantically, still breaks naive diffing.
+
+### CONSTRAINT 4 — `end_of_turn_confidence` is binary, not graded.
+
+Measured **exactly `0.0` on every partial and exactly `1.0` on the final**, across 4 runs. So
+`end_of_turn_confidence_threshold` has nothing to tune on this model, and code waiting for
+`confidence > 0.7` to act early **will never fire early**. Trust the `end_of_turn` flag.
+
+## 6. Answering the punctuation question directly
+
+**Does `universal-3-5-pro` return Arabic punctuated and formatted? YES — and without being
+asked.**
+
+Evidence from what I actually received:
+
+- `turn_is_formatted: true` on **every** turn, including all three partials.
+- The text carries a real Arabic question mark `؟` (U+061F).
+- Diacritics are preserved (`صباحاً`).
+- Numbers are rendered as formatted words (`تسعة`).
+- **We never sent `format_turns`.** `build_url()` omits it by default.
+
+So the documented "`format_turns` is not available on `universal-3-5-pro`" is consistent with
+what happens, but the practical conclusion is the opposite of what it sounds like: there is no
+toggle **because formatting is always on**, not because it is unavailable. My authored fixture
+had guessed `false` and was wrong.
+
+Caveat: verified on one sentence, one speaker, one clip. Whether formatting stays this good on
+dialect, noise, or long turns is unmeasured.
+
+## 7. Verified vs unverified
+
+### Verified live
+
+- The URL, parameters and model name are all accepted (`speech_model`, `language_codes`,
+  `encoding=pcm_mulaw`, `sample_rate=8000`).
+- **`Authorization: <key>` with NO `Bearer` prefix is correct.** This was the highest-risk
+  assumption in the repo; it is now measured, not believed.
+- Arabic transcription works on 8 kHz phone-band mu-law and is accurate on this clip.
+- Formatting, binary confidence, partial revision, word-form numbers (§5, §6).
+- The 50–1000 ms chunk window, and that violating it closes the socket.
+- Session config returned at `Begin`: `model: universal-3-5-pro`, `mode: balanced`,
+  `api_version: 2025-05-12`, `speaker_labels: false`, `redact_pii: false`,
+  `filter_profanity: false`, `domain: null`, `voice_focus: null`.
+- 0 reconnects and 0 errors on clean runs; reconnect fires correctly on an injected drop.
+- Endpoint lag is positive and asserted non-negative.
+
+### Still unverified
+
+1. **Accuracy beyond one clip.** One sentence, one synthetic voice, clean audio. Real callers
+   have dialect (Gulf vs MSA), background noise, and mobile codecs. Completely unmeasured.
+2. **Multi-turn behaviour.** Everything here is a single turn. `turn_order` increments are
+   untested.
+3. **Reconnect mid-turn on the live service.** A reconnect opens a **new session with no memory
+   of the turn**, so the first half of a sentence is lost. The fake papers over this by
+   restarting its script. Unsolved and untested live.
+4. **Billing rate.** `v2/account` returns `{}`; `v2/account/billing`, `v2/usage`,
+   `v2/account/usage`, `v2/billing` all **404**. **No endpoint exposes pricing or usage**, so
+   per-second cost is unconfirmed and I am not going to guess it.
+5. **Barge-in against the new socket.** Not wired, not measured.
+6. **Long-turn and idle-socket behaviour**, and whether idle sockets are dropped server-side.
+
+## 8. What does not work yet
 
 Blunt list.
 
-- **There is no API key**, so nothing has run against AssemblyAI. This is the top blocker and
-  it is owner-only: creating an account is an external action behind the confirmation gate.
+- **Fish TTS is out of credit — stage 3 cannot be measured.** `POST /v1/tts` returns
+  **402 Payment Required**; the wallet reads `credit: 0.000000`, `cumulative_top_up: 0`. It was
+  free-trial credit and today's 10:11 selftest appears to have spent the last of it.
+  **This supersedes ASSETS.md**, which recorded Fish as working. So every stage-3 number in this
+  repo is a labelled stub and **must not be quoted as measured**. Needs a top-up (owner, gated).
 - **Nothing is wired into `call_agent/server.py`.** The adapter exists and is tested, but
   `Call.partials()` is still a poll loop. Converting it to a subscriber is the real integration
-  work and it has not been started. **I did not modify anything outside this directory.**
+  work and has not been started. **I did not modify anything outside this directory.**
+- **No Arabic number-word parser** (Constraint 2). Required before any booking/time logic works.
+- **Barge-in is unsafe as currently written** against revised partials (Constraint 3). The rule
+  is documented and tested; the *fix* in `call_agent` is not done.
 - **`TranscriberAdapter` is a shim, not an equivalence.** `careful()` has no second, more
-  accurate model to run — it waits for end-of-turn instead. That is a different trade and it
-  has not been measured against the existing `base`/`small` Whisper pair.
-- **The protocol fixture is hand-authored, not captured.** It is written to the documented
-  schema. `replay.py --live --record` replaces it with real frames the moment a key exists, and
-  `fixtures/README.md` says so plainly.
-- **The Arabic fixture is TTS, not a human.** It is Fish Audio output pushed to 8 kHz. Real
-  callers have accents, background noise, and mobile codecs. Cleaner than reality.
-- **One turn only.** No multi-turn conversation, no barge-in integration, no interruption
-  handling against the new socket.
-- **No TTS in the loop.** Stage 3 is a labelled stub (`stub_llm_tts`). It does not call an LLM
-  or a voice. Any budget produced with it is tagged `replay+stub` for exactly that reason.
-- **The LLM turn is untouched**, and per ASSETS.md it is 3,878–16,917 ms — the entire remaining
-  latency problem. This project measures it; it does not fix it.
-- **No auth on the media-stream websocket, and no Twilio signature validation.** Pre-existing
-  in `call_agent`, not addressed here, and a real hole if the tunnel URL leaks.
-- **Nothing is deployed.** No public host, no tunnel, no remote created, nothing pushed.
+  accurate model — it waits for end-of-turn instead. Unmeasured against the `base`/`small` pair.
+- **One turn only.** No conversation, no interruption handling.
+- **The LLM turn is untouched.** Per ASSETS.md it is 3,878–16,917 ms — still the entire
+  remaining latency problem. This project *measures* the budget; it does not fix it.
+- **No auth on the media-stream websocket, no Twilio signature validation.** Pre-existing in
+  `call_agent`, not addressed here, and a real hole if the tunnel URL leaks.
+- **Nothing is deployed.** No public host, no tunnel, no remote, nothing pushed.
 
-## 6. Honest positioning
+## 9. Honest positioning
 
-The strongest true claim: *AssemblyAI v3 takes Twilio's 8 kHz mu-law directly, so Arabic
-realtime transcription drops into an existing telephony agent with no resampling in the hot
-path, and the turn budget is instrumented so the real bottleneck is visible rather than
-averaged away.*
+The strongest **true** claim, now measured:
 
-The claim to avoid: **do not quote 483 ms as response time.** It is acknowledgement latency.
-Real answers take 4–17 s. A judge who dials the number will discover that in one call, and
-overclaiming it would cost more than the number ever bought.
+> AssemblyAI v3 transcribes Arabic from a Twilio-shaped 8 kHz mu-law stream with no resampling
+> in the hot path, returning correctly-ordered, punctuated Arabic with a ~490 ms endpoint lag —
+> and the turn budget is instrumented in three stages so the real bottleneck is visible rather
+> than averaged away.
 
-Also worth being straight about: the Arabic angle here is *input*, not output. This agent hears
-Arabic via AssemblyAI and speaks it via Fish Audio. AssemblyAI does not speak Arabic at all yet.
+Claims to avoid:
 
-## 7. Next actions, in order
+- **Do not quote 483 ms as response time.** It is acknowledgement latency. Real answers take
+  4–17 s because of the LLM.
+- **Do not claim zero added latency from "byte-for-byte forwarding".** Aggregation to 100 ms is
+  mandatory and costs up to 100 ms.
+- **Do not present stage 3 as measured.** Fish is out of credit.
+- Be straight that the Arabic angle is **input**, not output: this hears Arabic via AssemblyAI
+  and would speak it via Fish. AssemblyAI has no Arabic voice at all.
 
-1. **Owner creates the AssemblyAI account** and writes the key to
-   `~/jarvis/.credentials/assemblyai_key` (`chmod 600`). Everything below is blocked on this.
-2. `python3 replay.py --live --record` — first real contact. Confirms or refutes unverified
-   items 1, 2 and 3 in one run, and captures a real fixture.
-3. `python3 latency.py --live --n 5` — real numbers for stages 1 and 2. Mind the
-   5-connections/minute cap; `--gap` defaults to 13 s for that reason.
-4. Listen to the Arabic transcript and judge accuracy by reading it, not by exit code.
-5. Only then convert `Call.partials()` in `call_agent/server.py` to a subscriber.
+## 10. Next actions, in order
+
+1. **Top up Fish Audio** (owner, gated) so stage 3 becomes a real measurement.
+2. Build the Arabic number-word parser (Constraint 2).
+3. Convert `Call.partials()` in `call_agent/server.py` to a subscriber, and **move barge-in
+   and intent routing off partials** or gate them on `end_of_turn` (Constraint 3).
+4. Test a real multi-turn call and a mid-turn reconnect.
+5. Measure accuracy on a genuinely human Arabic recording, not TTS.
