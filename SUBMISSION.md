@@ -122,8 +122,8 @@ Repo, demo and content:
 - [x] Arabic TTS with no vendor and no bill
 - [x] Web demo, driven in a real browser and screenshotted
 - [x] Demo deployed to a URL that is up without any of our machines: **https://arabic-voice-agent-nu.vercel.app**
-- [ ] Video recorded
-- [ ] Deck built
+- [x] Video BUILT, 90 s, needs no narration (deck/SUBMISSION_VIDEO.mp4). Assembled from the deck pages, a real capture of the LIVE demo, and measurement cards. Narration can be laid over it later without rebuilding.
+- [x] Deck built (deck/ARABIC_VOICE_AGENT.pdf, 10 slides, derives its own test counts by running the suites)
 - [ ] Submitted on lablab
 
 Owner-only, cannot be done from here:
@@ -132,7 +132,7 @@ Owner-only, cannot be done from here:
 - [ ] **Join the lablab Discord.** The rules require it separately from registering on the site.
 - [ ] **Confirm the hackathon enrolment moved off "Waiting for approval".**
 - [x] ~~Decide where the demo is hosted and approve the deploy.~~ Done: Vercel, live.
-- [ ] Record the video, since it carries his voice and his name.
+- [ ] OPTIONAL: record narration over the existing 90 s cut, or re-record it in his own voice. Not a blocker: the video stands without a voice.
 - [ ] Press submit.
 
 ## 9. Hosting decision, open
