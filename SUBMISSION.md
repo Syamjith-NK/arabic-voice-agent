@@ -24,10 +24,10 @@ and the truthful claim here is sharper than the product.
 
 Most entries will use AssemblyAI's managed Voice Agent API, which is the right
 call for English and the wrong call here, for a reason that is checkable in
-their own docs: it takes **18 input languages including Arabic** and ships
-**6 output voices, all European.** Arabic is listed as coming soon. So a managed
-Arabic agent hears Arabic and answers in an English voice, and a judge who tests
-it hears exactly that.
+their own docs, re-verified 2026-09-18: it takes **18 input languages including
+Arabic** and ships **16 voices covering 6 languages, 11 English and 5 European.**
+Arabic is listed as coming soon. So a managed Arabic agent hears Arabic and
+answers in a European voice, and a judge who tests it hears exactly that.
 
 That single fact forces a different architecture, and the rest of the entry
 follows from it.
@@ -103,8 +103,9 @@ videos can tell.
 
 Honest limits as they stand today:
 
-- Accuracy is verified on captured Arabic, not on a room full of dialect speakers under noise.
-- The LLM turn is measured at 3.9 to 16.9 seconds and is not solved; the agent answers in milliseconds by being deterministic, which is a design choice with real costs, not a speed record.
+- Accuracy is verified on captured and synthesised Arabic, not on a room full of dialect speakers under noise.
+- The agent answers in about half a second because it is deterministic, not because anything about LLM latency was solved. That is a design choice with real costs: it handles the booking script and nothing else, and an off-script caller gets a scripted clarification rather than an answer.
+- Accuracy on genuinely human Arabic is the single biggest gap. Everything measured is synthetic or captured-synthetic audio.
 - The voice is a system voice. It is intelligible; it is not warm.
 - Mid-turn reconnect loses the first half of a sentence, because a new session has no memory of the old one. Untested live.
 
