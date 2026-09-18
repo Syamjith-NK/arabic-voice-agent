@@ -578,6 +578,10 @@ async def run_corpus(c: Corpus, n: int, start: int, gap: float, pace: bool,
         row = {
             "corpus": c.key, "offset": cl.offset, "clip_id": cl.clip_id,
             "seconds": cl.seconds, "sha256": cl.sha256, "turns": n_turns,
+            # Both corpora ship speaker gender. The first run collected it into
+            # the Clip and then never wrote it out, so the run could not say
+            # anything about speaker mix; it is written now rather than claimed.
+            "meta": cl.extra,
             "elapsed_s": round(elapsed, 2), "errors": errors,
             "ref": public_text(c, cl.ref), "hyp": public_text(c, hyp),
             "ref_full_withheld": not c.quote_in_full,
@@ -592,7 +596,10 @@ async def run_corpus(c: Corpus, n: int, start: int, gap: float, pace: bool,
         if errors:
             print(f"        errors: {errors}")
         # Keep the full text for the local cache, never for the committed JSON.
+        # The corpus's own alternate reference goes in too, or --cached would
+        # silently score one figure fewer than the live run did.
         row["_ref_full"], row["_hyp_full"] = cl.ref, hyp
+        row["_ref_alt_full"] = cl.ref_alt
     return rows
 
 
@@ -724,8 +731,14 @@ def rescore(examples: int) -> int:
             continue
         c = CORPORA[r["corpus"]]
         ref, hyp = r["_ref_full"], r["_hyp_full"]
-        out.append({**r, "ref": public_text(c, ref), "hyp": public_text(c, hyp),
-                    **score_row(ref, hyp, "")})
+        scored = {**r, "ref": public_text(c, ref), "hyp": public_text(c, hyp),
+                  **score_row(ref, hyp, r.get("_ref_alt_full", ""))}
+        if not r.get("_ref_alt_full"):
+            # No alternate reference in the cache means it cannot be recomputed
+            # under the current normalisation, and carrying the old figure
+            # forward would attach a stale number to a new fold.
+            scored.pop("wer_norm_alt_ref", None)
+        out.append(scored)
     write(out, paced=True)
     report(out, examples)
     return 0

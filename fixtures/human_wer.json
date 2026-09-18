@@ -35,36 +35,69 @@
   "summary": {
     "fleurs": {
       "corpus": "fleurs",
-      "clips": 1,
-      "audio_seconds": 8.2,
+      "clips": 30,
+      "audio_seconds": 315.4,
       "empty_hypotheses": 0,
       "wer_raw": {
-        "sub": 5,
-        "del": 0,
-        "ins": 0,
-        "ref_words": 15,
-        "errors": 5,
-        "wer": 0.3333
+        "sub": 116,
+        "del": 6,
+        "ins": 2,
+        "ref_words": 551,
+        "errors": 124,
+        "wer": 0.225
       },
       "wer_normalised": {
-        "sub": 3,
-        "del": 0,
-        "ins": 0,
-        "ref_words": 15,
-        "errors": 3,
-        "wer": 0.2
+        "sub": 44,
+        "del": 6,
+        "ins": 1,
+        "ref_words": 553,
+        "errors": 51,
+        "wer": 0.0922
       },
       "wer_normalised_alt_reference": {
-        "sub": 3,
-        "del": 0,
-        "ins": 0,
-        "ref_words": 15,
-        "errors": 3,
-        "wer": 0.2
+        "sub": 44,
+        "del": 6,
+        "ins": 1,
+        "ref_words": 553,
+        "errors": 51,
+        "wer": 0.0922
       },
-      "median_per_clip_wer_normalised": 0.2,
-      "worst_per_clip_wer_normalised": 0.2,
-      "best_per_clip_wer_normalised": 0.2,
+      "median_per_clip_wer_normalised": 0.069,
+      "worst_per_clip_wer_normalised": 0.3462,
+      "best_per_clip_wer_normalised": 0.0,
+      "corruption_totals": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits_total": 12,
+      "ref_ascii_digits_total": 10
+    },
+    "casablanca": {
+      "corpus": "casablanca",
+      "clips": 30,
+      "audio_seconds": 177.2,
+      "empty_hypotheses": 0,
+      "wer_raw": {
+        "sub": 255,
+        "del": 51,
+        "ins": 12,
+        "ref_words": 454,
+        "errors": 318,
+        "wer": 0.7004
+      },
+      "wer_normalised": {
+        "sub": 199,
+        "del": 51,
+        "ins": 15,
+        "ref_words": 451,
+        "errors": 265,
+        "wer": 0.5876
+      },
+      "wer_normalised_alt_reference": null,
+      "median_per_clip_wer_normalised": 0.619,
+      "worst_per_clip_wer_normalised": 1.1667,
+      "best_per_clip_wer_normalised": 0.2812,
       "corruption_totals": {
         "presentation_forms": 0,
         "bidi_controls": 0,
@@ -82,7 +115,7 @@
       "seconds": 8.16,
       "sha256": "4bdd2e6dec2d8a3b",
       "turns": 1,
-      "elapsed_s": 13.59,
+      "elapsed_s": 10.39,
       "errors": [],
       "ref": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري.",
       "hyp": "تشكلت في المحيط الأطلسي اليوم عشر عاصفة مسمى لموسم الأعصير الأطلسية العاصفة شبه الاستوائية جيري",
@@ -120,6 +153,2480 @@
         "errors": 3,
         "wer": 0.2
       }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 1,
+      "clip_id": "1730",
+      "seconds": 14.16,
+      "sha256": "b1ed92a39923867b",
+      "turns": 1,
+      "elapsed_s": 17.23,
+      "errors": [],
+      "ref": "تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30.",
+      "hyp": "تغادر الحافلات المحطة الداخلية بين المناطق عبر النهر في خلال اليوم على الرغم من أن معظمها وخاصة المتجه منها إلى الشرق وجاكارة بومثانج تغادر بين 36 و 37",
+      "ref_full_withheld": false,
+      "ref_words": 27,
+      "hyp_words": 28,
+      "wer_raw": {
+        "sub": 6,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 27,
+        "errors": 7,
+        "wer": 0.2593
+      },
+      "wer_norm": {
+        "sub": 4,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 30,
+        "errors": 6,
+        "wer": 0.2
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 4,
+      "ref_ascii_digits": 8,
+      "wer_norm_alt_ref": {
+        "sub": 4,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 30,
+        "errors": 6,
+        "wer": 0.2
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 2,
+      "clip_id": "1995",
+      "seconds": 16.02,
+      "sha256": "06f24d241664fe87",
+      "turns": 2,
+      "elapsed_s": 19.63,
+      "errors": [],
+      "ref": "يتمُّ دعْم التعلُّم التفاعليّ في البرنامج داخليًا ويهدف إلى طرح الأسئلة والتحفيز وشرح الإجراءاتِ التي قد يكون من الصعب على الطالب التعامل معها بمفرده.",
+      "hyp": "يتم دعم التعلم التفاعلي في البرنامج داخلياً. ويهدف إلى طرح الأسئلة والتحفيز وشرح الإجراءات التي قد يكون من الصعب على الطالب التعامل معها بمفرده.",
+      "ref_full_withheld": false,
+      "ref_words": 24,
+      "hyp_words": 24,
+      "wer_raw": {
+        "sub": 6,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 24,
+        "errors": 6,
+        "wer": 0.25
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 24,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 24,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 3,
+      "clip_id": "1942",
+      "seconds": 10.7,
+      "sha256": "ebb46ddf4596ba1c",
+      "turns": 1,
+      "elapsed_s": 12.96,
+      "errors": [],
+      "ref": "نصنع بيوتنا وملابسنا من النباتات . معظم الطعام الذي نتناوله من النباتات كذلك. بدون النباتات، لا يمكن للحيوانات البقاء.",
+      "hyp": "نصنع بيوتنا وملابسنا من النباتات معظم الطعام الذي نتناوله من النباتات كذلك بدون النباتات لا يمكن للحيوانات البقاء",
+      "ref_full_withheld": false,
+      "ref_words": 19,
+      "hyp_words": 18,
+      "wer_raw": {
+        "sub": 3,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 19,
+        "errors": 4,
+        "wer": 0.2105
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 18,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 18,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 4,
+      "clip_id": "1740",
+      "seconds": 8.34,
+      "sha256": "dd7b7fd04eb5886e",
+      "turns": 1,
+      "elapsed_s": 10.17,
+      "errors": [],
+      "ref": "إن عرض الصوت والضوء الهرمي واحد من أمتع الأشياء الموجودة بالمنطقة للأطفال.",
+      "hyp": "إن عرض الصوت والضوء الهرمي واحدا من أمتع الأشياء الموجودة بالمنطقة للأطفال",
+      "ref_full_withheld": false,
+      "ref_words": 12,
+      "hyp_words": 12,
+      "wer_raw": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 2,
+        "wer": 0.1667
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 5,
+      "clip_id": "1771",
+      "seconds": 14.76,
+      "sha256": "dbdb4a6667eafa18",
+      "turns": 1,
+      "elapsed_s": 17.34,
+      "errors": [],
+      "ref": "تذكر أنه على الرغم من أن الموسيقى في المنصات الرئيسية قد تكون انتهت، إلا أن هناك أقسام من المهرجان قد تستمر في تشغيل الموسيقى حتى وقت متأخر من الليل.",
+      "hyp": "تذكر أنه على الرغم من أن الموسيقى في المنصات الرئيسية قد تكون انتهت إلا أن هناك أقسام من المهرجان قد تستمر في تشغيل الموسيقى حتى وقت متأخر من الليل.",
+      "ref_full_withheld": false,
+      "ref_words": 29,
+      "hyp_words": 29,
+      "wer_raw": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 29,
+        "errors": 1,
+        "wer": 0.0345
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 29,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 29,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 6,
+      "clip_id": "1976",
+      "seconds": 12.48,
+      "sha256": "25efa3f70e4c577c",
+      "turns": 1,
+      "elapsed_s": 15.19,
+      "errors": [],
+      "ref": "أدى ضاربا الكرة المتمركزين في الوسط، ساشين تيندولكار وراهول درافيد، جيدًا وأقاما شراكة أكسبت للفريق مائة نقطة.",
+      "hyp": "أدى ضعرب الكرة المتمركزين في الوسط ساشين تندولكار ورهول درافيد جيدا وأقام شراكة أكسبت للفريق 100 نقطة.",
+      "ref_full_withheld": false,
+      "ref_words": 17,
+      "hyp_words": 17,
+      "wer_raw": {
+        "sub": 8,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 17,
+        "errors": 8,
+        "wer": 0.4706
+      },
+      "wer_norm": {
+        "sub": 5,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 17,
+        "errors": 5,
+        "wer": 0.2941
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 3,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 5,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 17,
+        "errors": 5,
+        "wer": 0.2941
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 8,
+      "clip_id": "1947",
+      "seconds": 6.36,
+      "sha256": "0e0e568e7c07bccf",
+      "turns": 1,
+      "elapsed_s": 7.81,
+      "errors": [],
+      "ref": "قبل وصول القوات، لم تواجه هايتي مشاكل متعلقة بالمرض منذ القرن التاسع عشر.",
+      "hyp": "قبل وصول القوات لم تواجه حياة مشاكل متعلقة بالماض منذ القرن التاسع عشر.",
+      "ref_full_withheld": false,
+      "ref_words": 13,
+      "hyp_words": 13,
+      "wer_raw": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 13,
+        "errors": 3,
+        "wer": 0.2308
+      },
+      "wer_norm": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 13,
+        "errors": 2,
+        "wer": 0.1538
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 13,
+        "errors": 2,
+        "wer": 0.1538
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 9,
+      "clip_id": "1680",
+      "seconds": 10.92,
+      "sha256": "64664353f259a0ab",
+      "turns": 1,
+      "elapsed_s": 13.75,
+      "errors": [],
+      "ref": "بصفته رياضيّاً شاملاً، يمكن للنّمر التّسلق (وإن لم يكن ذلك بشكلٍ جيد) والسّباحة والقفز لمسافاتٍ طويلةٍ والسّحب بقوّة خمسة أضعاف قوّة الإنسان.",
+      "hyp": "بصفة رياضية شاملة يمكن للنمر التخلق وإن لم يكن ذلك بشكل جيد والسباحة والقفز لمسافات طويلة والسحب بقوة خمسة أضعاف قوة الإنسان",
+      "ref_full_withheld": false,
+      "ref_words": 22,
+      "hyp_words": 22,
+      "wer_raw": {
+        "sub": 15,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 22,
+        "errors": 15,
+        "wer": 0.6818
+      },
+      "wer_norm": {
+        "sub": 4,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 22,
+        "errors": 4,
+        "wer": 0.1818
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 4,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 22,
+        "errors": 4,
+        "wer": 0.1818
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 10,
+      "clip_id": "2000",
+      "seconds": 11.76,
+      "sha256": "d17720c999adbac3",
+      "turns": 1,
+      "elapsed_s": 13.77,
+      "errors": [],
+      "ref": "في حال كنت تعبر منطقة بحر البلطيق الشمالية في الشتاء، فيجب أن تفحص موقع الكابينة، إذ أن المرور عبر الجليد يسبب ضوضاء صاخبة للغاية للأشخاص الأكثر تضرراً.",
+      "hyp": "في حال كنت تعبر منطقة بحر البلتيق الشمالية في الشتاء فيجب أن تفحص موقع الكبينة إذ أن المرور عبر الجليد يسبب ضوضاء صخبة للغاية للأشخاص الأكثر تضرراً.",
+      "ref_full_withheld": false,
+      "ref_words": 27,
+      "hyp_words": 27,
+      "wer_raw": {
+        "sub": 4,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 27,
+        "errors": 4,
+        "wer": 0.1481
+      },
+      "wer_norm": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 27,
+        "errors": 3,
+        "wer": 0.1111
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 27,
+        "errors": 3,
+        "wer": 0.1111
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 11,
+      "clip_id": "1714",
+      "seconds": 11.4,
+      "sha256": "44ad0dfec5e4a522",
+      "turns": 1,
+      "elapsed_s": 13.71,
+      "errors": [],
+      "ref": "أُرسل القمر الصناعي إلى الفضاء بواسطة صاروخ. يستخدم العلماء التلسكوبات في الفضاء لأن الغلاف الجوي لكوكب الأرض يشوه بعض الضوء والرؤية.",
+      "hyp": "أرسل القمر الصناعي إلى الفضاء بواسطة صاروخ يستخدم العلماء التليسكوبات في الفضاء لأن الغلاف الجوي لكوكب الأرض يشوه بعض الضوء والرؤية",
+      "ref_full_withheld": false,
+      "ref_words": 21,
+      "hyp_words": 21,
+      "wer_raw": {
+        "sub": 4,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 4,
+        "wer": 0.1905
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 12,
+      "clip_id": "1667",
+      "seconds": 12.24,
+      "sha256": "81f74e15066d32cf",
+      "turns": 1,
+      "elapsed_s": 14.6,
+      "errors": [],
+      "ref": "بصفة عامة، يمكن أن يظهر سلوكان عندما يبدأ المديرون في قيادة أقرانهم السابقين أحدهما هو محاولة البقاء \"مثل الآخرين\" (أو الأخريات).",
+      "hyp": "بصفة عامة يمكن أن يظهر سلوكان عندما يبدأ المديرون في قيادة أقرانهم السابقين. أحدهم هو محاولة البقاء مثل الآخرين أو الأخريات.",
+      "ref_full_withheld": false,
+      "ref_words": 21,
+      "hyp_words": 21,
+      "wer_raw": {
+        "sub": 7,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 7,
+        "wer": 0.3333
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 13,
+      "clip_id": "1778",
+      "seconds": 6.0,
+      "sha256": "603c64f1e00afb7b",
+      "turns": 1,
+      "elapsed_s": 8.63,
+      "errors": [],
+      "ref": "يتصاعد من المصنع دخاناً أبيض، وهذا ما أظهرته تقارير تلفزيونية.",
+      "hyp": "يتصاعد من المصنع دخانا أبيض وهذا ما أظهرته تقارير تلفزيونية.",
+      "ref_full_withheld": false,
+      "ref_words": 10,
+      "hyp_words": 10,
+      "wer_raw": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 10,
+        "errors": 2,
+        "wer": 0.2
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 10,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 10,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 14,
+      "clip_id": "1934",
+      "seconds": 11.64,
+      "sha256": "1933bf37c66fe4cf",
+      "turns": 1,
+      "elapsed_s": 13.71,
+      "errors": [],
+      "ref": "يمكنك أن تسمع صوت السيّاح والبائعين هنا دائماً عادةً. فقصة الصوت والضوء تشبه قصة كتابٍ.",
+      "hyp": "يمكنك أن تسمع صوت السياح والبائعين هنا دائما عادة فقصة الصوت والضوء تشبه قصة كتاب",
+      "ref_full_withheld": false,
+      "ref_words": 15,
+      "hyp_words": 15,
+      "wer_raw": {
+        "sub": 4,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 4,
+        "wer": 0.2667
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 15,
+      "clip_id": "1973",
+      "seconds": 18.48,
+      "sha256": "bdc90c5f767bedba",
+      "turns": 2,
+      "elapsed_s": 21.07,
+      "errors": [],
+      "ref": "لكن بسبب موقعها \"القريب من المناطق الاستوائية\" ببضع درجات فقط شمال الخط الاستوائي، فأنتم بحاجة للتعامل مع كلاهما: الحرارة العالية المستمرة والشمس اللافحة (وذلك نادراً عندما تكون السماء صافية).",
+      "hyp": "إيه. لكن بسبب موقعها القريب من المناطق الاستوائية ببضع درجات فقط شمال الخط الاستوائي فأنتم بحاجة للتعامل مع كلاهما الحرارة العالية المستمرة والشمس وذلك نادرا عندما تكون السماء صافية",
+      "ref_full_withheld": false,
+      "ref_words": 29,
+      "hyp_words": 29,
+      "wer_raw": {
+        "sub": 7,
+        "del": 1,
+        "ins": 1,
+        "ref_words": 29,
+        "errors": 9,
+        "wer": 0.3103
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 1,
+        "ins": 1,
+        "ref_words": 29,
+        "errors": 2,
+        "wer": 0.069
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 1,
+        "ins": 1,
+        "ref_words": 29,
+        "errors": 2,
+        "wer": 0.069
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 16,
+      "clip_id": "1833",
+      "seconds": 10.44,
+      "sha256": "235f617debe526be",
+      "turns": 1,
+      "elapsed_s": 13.44,
+      "errors": [],
+      "ref": "افترض الفيلسوف أرسطو أن كل شيء يتكون من مزيج من عنصر أو أكثر من أربعة عناصر هي الأرض والماء والهواء والنار.",
+      "hyp": "افترض الفيلسوف أروستو أن كل شيء يتكون من مزيج من عنصر أو أكثر من أربعة عناصر هي الأرض والماء والهواء والنار.",
+      "ref_full_withheld": false,
+      "ref_words": 21,
+      "hyp_words": 21,
+      "wer_raw": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 17,
+      "clip_id": "1703",
+      "seconds": 7.38,
+      "sha256": "941f3f4dc7058c14",
+      "turns": 1,
+      "elapsed_s": 9.41,
+      "errors": [],
+      "ref": "أدى مارتيلي أمس القسم في مجلس انتخابي مؤقت جديد مكون من تسعة أعضاء.",
+      "hyp": "أدى مرتلي أمس القسم في مجلس انتخاب مؤقت جديد مكون من تسعة أعضاء.",
+      "ref_full_withheld": false,
+      "ref_words": 13,
+      "hyp_words": 13,
+      "wer_raw": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 13,
+        "errors": 2,
+        "wer": 0.1538
+      },
+      "wer_norm": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 13,
+        "errors": 2,
+        "wer": 0.1538
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 13,
+        "errors": 2,
+        "wer": 0.1538
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 18,
+      "clip_id": "1688",
+      "seconds": 11.16,
+      "sha256": "6d0b479c14884bb4",
+      "turns": 1,
+      "elapsed_s": 13.42,
+      "errors": [],
+      "ref": "جرت التقاليد على أن وظيفة القوّات البحريّة هي ضمان قدرة بلدك على نقل شعبك وبضائعه، بينما في الوقت نفسه، اعتراض قدرة عدوّك على نقل شعبه وبضائعه.",
+      "hyp": "قالت التقارير على أن وظيفة القوة البحرية هي ضمان كودريت بالك على نقل شعبه وبضائحه بينما في الوقت نفسه اعتراض كودريت عدوك على نقل شعبه وبضائحه",
+      "ref_full_withheld": false,
+      "ref_words": 26,
+      "hyp_words": 26,
+      "wer_raw": {
+        "sub": 12,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 26,
+        "errors": 12,
+        "wer": 0.4615
+      },
+      "wer_norm": {
+        "sub": 9,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 26,
+        "errors": 9,
+        "wer": 0.3462
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 9,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 26,
+        "errors": 9,
+        "wer": 0.3462
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 19,
+      "clip_id": "1791",
+      "seconds": 7.12,
+      "sha256": "cdb808958e95263f",
+      "turns": 1,
+      "elapsed_s": 9.67,
+      "errors": [],
+      "ref": "لا تشوه الموقع بوضع علامات أو الكتابات الخادشة على الجدران في المباني.",
+      "hyp": "لا تشوه الموقع بوضع علامات أو الكتابات الخادشة على القدران في المباني.",
+      "ref_full_withheld": false,
+      "ref_words": 12,
+      "hyp_words": 12,
+      "wer_raw": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 20,
+      "clip_id": "1662",
+      "seconds": 9.96,
+      "sha256": "99bc0a3c44a21b3f",
+      "turns": 2,
+      "elapsed_s": 11.94,
+      "errors": [],
+      "ref": "السبائك هي بشكل أساسي خليط من اثنين أو أكثر من المعادن. لا تنسَ أن هناك العديد من العناصر في الجدول الدوري.",
+      "hyp": "السبائك هي بشكل أساسي خليط من اثنين أو أكثر من المعادن. لا تنسى أن هناك العديد من العناصر في الجدول الدوري.",
+      "ref_full_withheld": false,
+      "ref_words": 21,
+      "hyp_words": 21,
+      "wer_raw": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 1,
+        "wer": 0.0476
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 21,
+      "clip_id": "2002",
+      "seconds": 10.92,
+      "sha256": "6452e7cf20652240",
+      "turns": 1,
+      "elapsed_s": 13.31,
+      "errors": [],
+      "ref": "سَيسْمح ذلك للاعبين بالتحكم في الأفعال والحركات في ألعاب الفيديو عن طريق التلويح بالجهاز في الهواء.",
+      "hyp": "سيسمح ذلك لللعبين بالتحكم في الأفعال والحركات في ألعاب الفيديو عن طريق التلويح بالجهاز في الهواء.",
+      "ref_full_withheld": false,
+      "ref_words": 16,
+      "hyp_words": 16,
+      "wer_raw": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 16,
+        "errors": 2,
+        "wer": 0.125
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 16,
+        "errors": 1,
+        "wer": 0.0625
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 16,
+        "errors": 1,
+        "wer": 0.0625
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 22,
+      "clip_id": "1942",
+      "seconds": 11.64,
+      "sha256": "c990f156c565aeb6",
+      "turns": 1,
+      "elapsed_s": 14.16,
+      "errors": [],
+      "ref": "نصنع بيوتنا وملابسنا من النباتات . معظم الطعام الذي نتناوله من النباتات كذلك. بدون النباتات، لا يمكن للحيوانات البقاء.",
+      "hyp": "نصنع بيوتنا وملابسنا من النباتات معظم الطعام الذي نتناوله من النباتات كذلك بدون النباتات لا يمكن للحيوانات البقاء",
+      "ref_full_withheld": false,
+      "ref_words": 19,
+      "hyp_words": 18,
+      "wer_raw": {
+        "sub": 3,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 19,
+        "errors": 4,
+        "wer": 0.2105
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 18,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 18,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 23,
+      "clip_id": "1825",
+      "seconds": 7.56,
+      "sha256": "c251fc8f79c3a074",
+      "turns": 1,
+      "elapsed_s": 9.33,
+      "errors": [],
+      "ref": "إذا أردت أن تقترب من الأحداث، فيجب عليك أن تدخل باكراً وذلك للحصول على موقع تخييم قريب من الموسيقى.",
+      "hyp": "إذا أردت أن تقترب من الأحداث، فيجب عليك أن تدخل بعكيراً وذلك للحصول على موقع تخييم قريب من الموسيقى.",
+      "ref_full_withheld": false,
+      "ref_words": 19,
+      "hyp_words": 19,
+      "wer_raw": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 19,
+        "errors": 1,
+        "wer": 0.0526
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 19,
+        "errors": 1,
+        "wer": 0.0526
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 19,
+        "errors": 1,
+        "wer": 0.0526
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 24,
+      "clip_id": "1720",
+      "seconds": 10.16,
+      "sha256": "30121552278b4c39",
+      "turns": 1,
+      "elapsed_s": 11.99,
+      "errors": [],
+      "ref": "الشوكولاتة الساخنة متوافقة مع المعايير البلجيكية. عصائر الفاكهة ممتازة على الرغم من أنها باهظة الثمن.",
+      "hyp": "الشوكولاتة الساخنة متوافقة مع المعايير البلجيكية عصائر الفاكهة ممتازة على الرغم من أنها باهظة الثمن",
+      "ref_full_withheld": false,
+      "ref_words": 15,
+      "hyp_words": 15,
+      "wer_raw": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 2,
+        "wer": 0.1333
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 25,
+      "clip_id": "1980",
+      "seconds": 8.88,
+      "sha256": "c48fa7b39c4c0ec1",
+      "turns": 1,
+      "elapsed_s": 10.71,
+      "errors": [],
+      "ref": "للأسف، دراسة حركة السير صعبة لأنه لا يمكن توقع سلوك السائق بيقين مائة في المئة.",
+      "hyp": "للأسف دراسة حركة السير صعبة لأنه لا يمكن توقع سلوك السائق بيقين 100%",
+      "ref_full_withheld": false,
+      "ref_words": 15,
+      "hyp_words": 13,
+      "wer_raw": {
+        "sub": 2,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 4,
+        "wer": 0.2667
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 3,
+        "wer": 0.2
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 3,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 3,
+        "wer": 0.2
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 26,
+      "clip_id": "1835",
+      "seconds": 14.26,
+      "sha256": "a7cbd48d2c6522d1",
+      "turns": 1,
+      "elapsed_s": 17.44,
+      "errors": [],
+      "ref": "لم يصدر تحذير عن تسونامي، ووفقا لوكالة جاكرتا للجيوفيزياء، لن يصدر تحذير عن تسونامي لأن الزلزال لم يستوف متطلبات 6.5 درجة.",
+      "hyp": "لم يصدر تحذير عن تسونامي ووفقاً لوكالة جاكارتا للجيوفيزياء لن يصدر تحذير عن تسونامي لأن الزلزال لم يستوفي متطلبات 6.5 درجة",
+      "ref_full_withheld": false,
+      "ref_words": 21,
+      "hyp_words": 21,
+      "wer_raw": {
+        "sub": 6,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 6,
+        "wer": 0.2857
+      },
+      "wer_norm": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 22,
+        "errors": 2,
+        "wer": 0.0909
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 2,
+      "ref_ascii_digits": 2,
+      "wer_norm_alt_ref": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 22,
+        "errors": 2,
+        "wer": 0.0909
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 27,
+      "clip_id": "1978",
+      "seconds": 9.12,
+      "sha256": "264e597511914440",
+      "turns": 1,
+      "elapsed_s": 11.5,
+      "errors": [],
+      "ref": "بالنسبة لمنتخب جنوب أفريقيا للرغبي، أنهى هذا سلسلة هزائم استمرّت لخمس مباريات.",
+      "hyp": "بالنسبة لمنتخب جنوب أفريقيا للرغب أنهى هذا سلسلة هزائم استمرت لخمس مباريات",
+      "ref_full_withheld": false,
+      "ref_words": 12,
+      "hyp_words": 12,
+      "wer_raw": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 3,
+        "wer": 0.25
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 28,
+      "clip_id": "1839",
+      "seconds": 6.66,
+      "sha256": "949e92e87fee6992",
+      "turns": 1,
+      "elapsed_s": 8.28,
+      "errors": [],
+      "ref": "فكر في مسار التزلج على الجليد باعتباره مسارًا مماثل للمشي لمسافات طويلة.",
+      "hyp": "في مسار التزلج على الجليد باعتباره مسارا مماثل للمشي لمسافات طويلة",
+      "ref_full_withheld": false,
+      "ref_words": 12,
+      "hyp_words": 11,
+      "wer_raw": {
+        "sub": 2,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 3,
+        "wer": 0.25
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 1,
+        "wer": 0.0833
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 29,
+      "clip_id": "1787",
+      "seconds": 8.76,
+      "sha256": "5f1988ef61ef7ebf",
+      "turns": 1,
+      "elapsed_s": 13.59,
+      "errors": [],
+      "ref": "التدوين هو أداة تلهم التعاون وتشجع الطلاب على توسيع نطاق التعلم إلى ما بعد اليوم الدراسي التقليدي.",
+      "hyp": "التدوين هو أداة تلهم التعاون وتشجع الطلاب على توسيع نطاق التعلم إلى ما بعد اليوم الدراسي التقليدى.",
+      "ref_full_withheld": false,
+      "ref_words": 17,
+      "hyp_words": 17,
+      "wer_raw": {
+        "sub": 1,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 17,
+        "errors": 1,
+        "wer": 0.0588
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 17,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 17,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "fleurs",
+      "offset": 30,
+      "clip_id": "1737",
+      "seconds": 7.92,
+      "sha256": "a97803d444531d09",
+      "turns": 1,
+      "elapsed_s": 9.98,
+      "errors": [],
+      "ref": "الأسود هي أكثر القطط اجتماعية وتعيش في مجموعات كبيرة تدعى قطعاناً.",
+      "hyp": "الأسود هي أكثر القطط اجتماعية وتعيش في مجموعات كبيرة تدعى قطعاناً.",
+      "ref_full_withheld": false,
+      "ref_words": 11,
+      "hyp_words": 11,
+      "wer_raw": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 11,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "wer_norm": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 11,
+        "errors": 0,
+        "wer": 0.0
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 0,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 11,
+        "errors": 0,
+        "wer": 0.0
+      }
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 0,
+      "clip_id": "41108_1",
+      "seconds": 7.71,
+      "sha256": "3111997c51637524",
+      "turns": 1,
+      "elapsed_s": 10.05,
+      "errors": [],
+      "ref": "أبوي الله يهداك أي استقراطي إلي انته تقول عليه هذا، هذا مال شحاتين، أبوي هذي حفيدتك الوحيدة، إتيبلها جذي شهالذ [...]",
+      "hyp": "ابوي الله يهداك يا استقراط اللي بتقول عليه هذا هذا مرشحاتين ابوي هذا حفيتك الوحيدة اتي بلهت شريش هذوق",
+      "ref_full_withheld": true,
+      "ref_words": 21,
+      "hyp_words": 19,
+      "wer_raw": {
+        "sub": 15,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 17,
+        "wer": 0.8095
+      },
+      "wer_norm": {
+        "sub": 10,
+        "del": 2,
+        "ins": 1,
+        "ref_words": 20,
+        "errors": 13,
+        "wer": 0.65
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 1,
+      "clip_id": "41110_2",
+      "seconds": 4.37,
+      "sha256": "de0c8bbc74a15db7",
+      "turns": 1,
+      "elapsed_s": 5.81,
+      "errors": [],
+      "ref": "و العيش الي حق الفطرة موصيتنك عليه يبته و لا نسيته بعد ؟",
+      "hyp": "والعيش اللي حق الفترة موصيت انك عليها هي بده ولا نسيتها بعد",
+      "ref_full_withheld": true,
+      "ref_words": 13,
+      "hyp_words": 12,
+      "wer_raw": {
+        "sub": 11,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 13,
+        "errors": 12,
+        "wer": 0.9231
+      },
+      "wer_norm": {
+        "sub": 11,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 11,
+        "wer": 0.9167
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 2,
+      "clip_id": "41113_2",
+      "seconds": 4.18,
+      "sha256": "6ed40fbc6a81715c",
+      "turns": 1,
+      "elapsed_s": 6.29,
+      "errors": [],
+      "ref": "لا تقول عاد كل سنة و انتو طيبين، قول عيدكم مبارك انته في الامارات ياخوي",
+      "hyp": "لا تقول عاد كل سنة وانتوا طيبين قول عيدكم مباركة في الامارات يا اخوي",
+      "ref_full_withheld": true,
+      "ref_words": 15,
+      "hyp_words": 14,
+      "wer_raw": {
+        "sub": 4,
+        "del": 2,
+        "ins": 1,
+        "ref_words": 15,
+        "errors": 7,
+        "wer": 0.4667
+      },
+      "wer_norm": {
+        "sub": 3,
+        "del": 2,
+        "ins": 1,
+        "ref_words": 15,
+        "errors": 6,
+        "wer": 0.4
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 3,
+      "clip_id": "41115_3",
+      "seconds": 2.58,
+      "sha256": "288dac47bf7d2545",
+      "turns": 1,
+      "elapsed_s": 3.93,
+      "errors": [],
+      "ref": "إنزين زين يابويه، اندوج، سمعيني",
+      "hyp": "حنزين زين يا بويه هندوش سمعيني",
+      "ref_full_withheld": true,
+      "ref_words": 5,
+      "hyp_words": 6,
+      "wer_raw": {
+        "sub": 3,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 5,
+        "errors": 4,
+        "wer": 0.8
+      },
+      "wer_norm": {
+        "sub": 3,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 5,
+        "errors": 4,
+        "wer": 0.8
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 4,
+      "clip_id": "41119_2",
+      "seconds": 4.2,
+      "sha256": "7dcd532012219a93",
+      "turns": 1,
+      "elapsed_s": 6.17,
+      "errors": [],
+      "ref": "ذبحتينا أذيتينا، اندوج هاه، أونه حاطينه في جيس يعني",
+      "hyp": "ذبحتينا أذيتينا انتو تشاء او انه حطينا في جيس يعني",
+      "ref_full_withheld": true,
+      "ref_words": 9,
+      "hyp_words": 10,
+      "wer_raw": {
+        "sub": 5,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 9,
+        "errors": 6,
+        "wer": 0.6667
+      },
+      "wer_norm": {
+        "sub": 4,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 9,
+        "errors": 5,
+        "wer": 0.5556
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 6,
+      "clip_id": "41125_1",
+      "seconds": 3.91,
+      "sha256": "ed0be3c26f426c80",
+      "turns": 1,
+      "elapsed_s": 5.35,
+      "errors": [],
+      "ref": "سير، بطل الباب، أبده الهندي يايب الغاز حق الحنا",
+      "hyp": "بطر الباب لابده الهندي ياي بالغاز عقل حنة",
+      "ref_full_withheld": true,
+      "ref_words": 9,
+      "hyp_words": 8,
+      "wer_raw": {
+        "sub": 7,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 9,
+        "errors": 8,
+        "wer": 0.8889
+      },
+      "wer_norm": {
+        "sub": 6,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 9,
+        "errors": 7,
+        "wer": 0.7778
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 7,
+      "clip_id": "41130_1",
+      "seconds": 9.67,
+      "sha256": "3561bd05dd5fd2a1",
+      "turns": 1,
+      "elapsed_s": 14.88,
+      "errors": [],
+      "ref": "أدري و الله، و الله أدري، تصدق يا خوي، أنا ألحينه، ريحيتني أنا أحينه بسير دايركت حق الحلاق، أربع ساعات وفرت عل [...]",
+      "hyp": "ادري والله والله ادري اتصدق اخوي انا الحين ريحيتني الحين وبصير دايرك حق الحلال اربع ساعات وفرت علي بصير الحلال [...]",
+      "ref_full_withheld": true,
+      "ref_words": 25,
+      "hyp_words": 21,
+      "wer_raw": {
+        "sub": 17,
+        "del": 4,
+        "ins": 0,
+        "ref_words": 25,
+        "errors": 21,
+        "wer": 0.84
+      },
+      "wer_norm": {
+        "sub": 12,
+        "del": 4,
+        "ins": 0,
+        "ref_words": 25,
+        "errors": 16,
+        "wer": 0.64
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 8,
+      "clip_id": "41134_1",
+      "seconds": 2.94,
+      "sha256": "12dae546ae132a6c",
+      "turns": 1,
+      "elapsed_s": 4.44,
+      "errors": [],
+      "ref": "صوتنا واصل آخر الدنيا الله يهديك، عباس",
+      "hyp": "سوط نواصل آخر الدنيا الله يهديك. عباس.",
+      "ref_full_withheld": true,
+      "ref_words": 7,
+      "hyp_words": 7,
+      "wer_raw": {
+        "sub": 4,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 7,
+        "errors": 4,
+        "wer": 0.5714
+      },
+      "wer_norm": {
+        "sub": 2,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 7,
+        "errors": 2,
+        "wer": 0.2857
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 9,
+      "clip_id": "41134_3",
+      "seconds": 3.49,
+      "sha256": "10cf5e1709029748",
+      "turns": 2,
+      "elapsed_s": 4.92,
+      "errors": [],
+      "ref": "خلاص، يوم بني، و بعد تعال شي ثاني",
+      "hyp": "خلاص. يوم بريء وبعد تعال شي ثاني",
+      "ref_full_withheld": true,
+      "ref_words": 8,
+      "hyp_words": 7,
+      "wer_raw": {
+        "sub": 3,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 8,
+        "errors": 4,
+        "wer": 0.5
+      },
+      "wer_norm": {
+        "sub": 2,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 8,
+        "errors": 3,
+        "wer": 0.375
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 10,
+      "clip_id": "41138_2",
+      "seconds": 3.43,
+      "sha256": "0bd7f216b78211bc",
+      "turns": 1,
+      "elapsed_s": 4.86,
+      "errors": [],
+      "ref": "بنايتي يخوي عكيفي، أيي أي وقت أتطمن على الرعية",
+      "hyp": "بناتي يا أخوي أكافي أي أي وقت تطمل على الرعية",
+      "ref_full_withheld": true,
+      "ref_words": 9,
+      "hyp_words": 10,
+      "wer_raw": {
+        "sub": 5,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 9,
+        "errors": 6,
+        "wer": 0.6667
+      },
+      "wer_norm": {
+        "sub": 5,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 9,
+        "errors": 6,
+        "wer": 0.6667
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 11,
+      "clip_id": "41153_1",
+      "seconds": 2.33,
+      "sha256": "8ab01c410dc1a35d",
+      "turns": 1,
+      "elapsed_s": 4.06,
+      "errors": [],
+      "ref": "يا مرحبا يا عباس، عيدك مبارك",
+      "hyp": "مرحبا يا عباس عيدكم مبارك",
+      "ref_full_withheld": true,
+      "ref_words": 6,
+      "hyp_words": 5,
+      "wer_raw": {
+        "sub": 2,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 6,
+        "errors": 3,
+        "wer": 0.5
+      },
+      "wer_norm": {
+        "sub": 1,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 6,
+        "errors": 2,
+        "wer": 0.3333
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 12,
+      "clip_id": "41158_1",
+      "seconds": 13.85,
+      "sha256": "51e8dbe2ff2ddb90",
+      "turns": 3,
+      "elapsed_s": 16.36,
+      "errors": [],
+      "ref": "إيها، يركضون يركضون إلا بنشتري و بنخيط و بنسير الحلاق و بنشتري خضرة، و بنسير نييب ثيابنا و نتحنا، و آخر شي ههه [...]",
+      "hyp": "إيه. ها. يركضون يركضون اللي بنشتري وبنخيط وبنزير الحلاق وبنشتري خضرة وبنزيرني بذيابنا وانتحن وآخر شي أرقدوا",
+      "ref_full_withheld": true,
+      "ref_words": 24,
+      "hyp_words": 17,
+      "wer_raw": {
+        "sub": 11,
+        "del": 8,
+        "ins": 1,
+        "ref_words": 24,
+        "errors": 20,
+        "wer": 0.8333
+      },
+      "wer_norm": {
+        "sub": 9,
+        "del": 8,
+        "ins": 1,
+        "ref_words": 24,
+        "errors": 18,
+        "wer": 0.75
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 13,
+      "clip_id": "41163_1",
+      "seconds": 9.46,
+      "sha256": "2e9674d13889a23a",
+      "turns": 1,
+      "elapsed_s": 15.66,
+      "errors": [],
+      "ref": "عساكم من العايدين، و الفايزين، و كل سنة و كل حول، إن شاء الله، سامحونا تعبانين من البارحة، برقد، عن اذنكم",
+      "hyp": "أساكم العايدين والفائزين وكل سنة وكل حول إن شاء الله سامحونا تعباني من البرحة برضو أنا فيكم",
+      "ref_full_withheld": true,
+      "ref_words": 21,
+      "hyp_words": 17,
+      "wer_raw": {
+        "sub": 12,
+        "del": 4,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 16,
+        "wer": 0.7619
+      },
+      "wer_norm": {
+        "sub": 9,
+        "del": 4,
+        "ins": 0,
+        "ref_words": 21,
+        "errors": 13,
+        "wer": 0.619
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 14,
+      "clip_id": "41168_2",
+      "seconds": 4.8,
+      "sha256": "35d771f489688123",
+      "turns": 1,
+      "elapsed_s": 6.35,
+      "errors": [],
+      "ref": "انزين تريي أمي، خل يشوفون الهلال قبل، و عقب بنعرف جان باجر العيد و الا لا",
+      "hyp": "زين تريه يا أمي خلي يشوفون الهلال قبل وعكب العافشان باكر العيد ولا لا",
+      "ref_full_withheld": true,
+      "ref_words": 16,
+      "hyp_words": 14,
+      "wer_raw": {
+        "sub": 9,
+        "del": 3,
+        "ins": 1,
+        "ref_words": 16,
+        "errors": 13,
+        "wer": 0.8125
+      },
+      "wer_norm": {
+        "sub": 7,
+        "del": 3,
+        "ins": 1,
+        "ref_words": 16,
+        "errors": 11,
+        "wer": 0.6875
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 17,
+      "clip_id": "41183_5",
+      "seconds": 3.66,
+      "sha256": "ac2972dd66b7d0a3",
+      "turns": 1,
+      "elapsed_s": 4.91,
+      "errors": [],
+      "ref": "احسنت ، بتتفضل عندنا يعني بتدخل تفضل",
+      "hyp": "أحسن أحسن بتفضل عندنا يعني بتتخل فضل.",
+      "ref_full_withheld": true,
+      "ref_words": 7,
+      "hyp_words": 7,
+      "wer_raw": {
+        "sub": 5,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 7,
+        "errors": 5,
+        "wer": 0.7143
+      },
+      "wer_norm": {
+        "sub": 4,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 6,
+        "errors": 5,
+        "wer": 0.8333
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 20,
+      "clip_id": "41186_2",
+      "seconds": 3.16,
+      "sha256": "fe12b74d7c18e714",
+      "turns": 1,
+      "elapsed_s": 4.57,
+      "errors": [],
+      "ref": "يمكن يشوف بنتهم و يخطبها، و أضيع أنا عقب في السالفة كلها",
+      "hyp": "يمكن يشوفننتم يخطبها وضيع عن عقب الصعبة كلها",
+      "ref_full_withheld": true,
+      "ref_words": 12,
+      "hyp_words": 8,
+      "wer_raw": {
+        "sub": 5,
+        "del": 4,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 9,
+        "wer": 0.75
+      },
+      "wer_norm": {
+        "sub": 4,
+        "del": 4,
+        "ins": 0,
+        "ref_words": 12,
+        "errors": 8,
+        "wer": 0.6667
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 21,
+      "clip_id": "41187_1",
+      "seconds": 5.52,
+      "sha256": "019ea21945658519",
+      "turns": 1,
+      "elapsed_s": 7.19,
+      "errors": [],
+      "ref": "غريب بويه، يمكن باجر العيد، ييبلنا شوية فواكه، حلويات، حلوى",
+      "hyp": "غريب بوي يمكن باكر العيد يبنا شوية فواكه حلويات حلوة",
+      "ref_full_withheld": true,
+      "ref_words": 10,
+      "hyp_words": 10,
+      "wer_raw": {
+        "sub": 7,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 10,
+        "errors": 7,
+        "wer": 0.7
+      },
+      "wer_norm": {
+        "sub": 4,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 10,
+        "errors": 4,
+        "wer": 0.4
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 23,
+      "clip_id": "41195_1",
+      "seconds": 3.53,
+      "sha256": "512373b23bb10f8f",
+      "turns": 1,
+      "elapsed_s": 5.05,
+      "errors": [],
+      "ref": "يا ربي بيعصب بسرعة، وايد يعصب هذا، منو هذا؟",
+      "hyp": "يا ربي إذا يعصب سرعة وايد يعصب هذا نو هذا",
+      "ref_full_withheld": true,
+      "ref_words": 9,
+      "hyp_words": 10,
+      "wer_raw": {
+        "sub": 5,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 9,
+        "errors": 6,
+        "wer": 0.6667
+      },
+      "wer_norm": {
+        "sub": 3,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 9,
+        "errors": 4,
+        "wer": 0.4444
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 24,
+      "clip_id": "41197_1",
+      "seconds": 13.23,
+      "sha256": "21854b1c14553c1b",
+      "turns": 1,
+      "elapsed_s": 15.55,
+      "errors": [],
+      "ref": "الله يرضى عليكم، الله يخليكم، يا اخوي عيد باجر، شو هالرمسة هذي، حر، حر طال عمرك، رمضان ولا العيد باجر حر هناك، [...]",
+      "hyp": "الله يرضى عليكم الله يخليكم يا اخوي عيد باكر شو هالرمزة هذي حر حر طال عمرك رمضان ولا العيد باكر حر نعم خلنا مك [...]",
+      "ref_full_withheld": true,
+      "ref_words": 32,
+      "hyp_words": 33,
+      "wer_raw": {
+        "sub": 14,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 32,
+        "errors": 15,
+        "wer": 0.4688
+      },
+      "wer_norm": {
+        "sub": 8,
+        "del": 0,
+        "ins": 1,
+        "ref_words": 32,
+        "errors": 9,
+        "wer": 0.2812
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 25,
+      "clip_id": "41198_3",
+      "seconds": 2.61,
+      "sha256": "1b6028dbd64ea160",
+      "turns": 1,
+      "elapsed_s": 4.16,
+      "errors": [],
+      "ref": "خذ بيزاتك، يايبلي عيدية ببلاش شحقه؟",
+      "hyp": "اخذ بيزاتك يا ابن العيد يا براش حقا",
+      "ref_full_withheld": true,
+      "ref_words": 6,
+      "hyp_words": 8,
+      "wer_raw": {
+        "sub": 6,
+        "del": 0,
+        "ins": 2,
+        "ref_words": 6,
+        "errors": 8,
+        "wer": 1.3333
+      },
+      "wer_norm": {
+        "sub": 5,
+        "del": 0,
+        "ins": 2,
+        "ref_words": 6,
+        "errors": 7,
+        "wer": 1.1667
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 26,
+      "clip_id": "41203_2",
+      "seconds": 3.56,
+      "sha256": "5736f3092a5076a0",
+      "turns": 1,
+      "elapsed_s": 4.84,
+      "errors": [],
+      "ref": "شو حقه تتعبين عمرج، هو لو باجر العيد تراه بنسمع الخبر",
+      "hyp": "شو حق التعبين عمرك؟ ولو باكر العترة بدنا نسمع الخبر",
+      "ref_full_withheld": true,
+      "ref_words": 11,
+      "hyp_words": 10,
+      "wer_raw": {
+        "sub": 8,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 11,
+        "errors": 9,
+        "wer": 0.8182
+      },
+      "wer_norm": {
+        "sub": 8,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 11,
+        "errors": 9,
+        "wer": 0.8182
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 27,
+      "clip_id": "41210_1",
+      "seconds": 5.93,
+      "sha256": "53f0fd798adf5c2c",
+      "turns": 1,
+      "elapsed_s": 7.55,
+      "errors": [],
+      "ref": "الظاهر و الله أعلم، إن لأول مرة العرب كلهم بيتفقون إنهم يصومون ثلاثين يوم",
+      "hyp": "ظاهر والله أعلم أن اللي أول مرة العرب كلهم بيتفقون أنهم يصومون ثلاثين يوم",
+      "ref_full_withheld": true,
+      "ref_words": 14,
+      "hyp_words": 14,
+      "wer_raw": {
+        "sub": 7,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 14,
+        "errors": 7,
+        "wer": 0.5
+      },
+      "wer_norm": {
+        "sub": 3,
+        "del": 1,
+        "ins": 1,
+        "ref_words": 14,
+        "errors": 5,
+        "wer": 0.3571
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 28,
+      "clip_id": "41224_1",
+      "seconds": 8.89,
+      "sha256": "b2ab0a8942f1fd42",
+      "turns": 1,
+      "elapsed_s": 11.15,
+      "errors": [],
+      "ref": "أبوي، أنا صح قلت له أبغي الفستان فيه الكسرات هذي، بس ما قلت هالوسع، و بعدين رقبته مو سبعة ما ابغي، شو ها راعي  [...]",
+      "hyp": "أنا صح قلت لأبغي الفستان فيه الكسرات هذي بس ما قلت هالوسة وبعدين ركبتها موسى بع ما أبغي شو هالعنخلات ما يفهم؟",
+      "ref_full_withheld": true,
+      "ref_words": 27,
+      "hyp_words": 22,
+      "wer_raw": {
+        "sub": 9,
+        "del": 5,
+        "ins": 0,
+        "ref_words": 27,
+        "errors": 14,
+        "wer": 0.5185
+      },
+      "wer_norm": {
+        "sub": 7,
+        "del": 5,
+        "ins": 0,
+        "ref_words": 27,
+        "errors": 12,
+        "wer": 0.4444
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 30,
+      "clip_id": "41237_1",
+      "seconds": 8.4,
+      "sha256": "0b1729f176ec8a7d",
+      "turns": 1,
+      "elapsed_s": 10.14,
+      "errors": [],
+      "ref": "اشوه خير، طفرت بنا، غثيتنا، يا ريال ما خليت هل البناية يرقدون، يالس تدقدق عليهم، مستولنا مثل الموس في البلعوم",
+      "hyp": "شو خير؟ طفرت بنا غفيتنا يا رجال ما حليت هالبناء يردون يا عشتك دق عليهم مستولنا مثل الموس بالبلعوم",
+      "ref_full_withheld": true,
+      "ref_words": 20,
+      "hyp_words": 19,
+      "wer_raw": {
+        "sub": 13,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 20,
+        "errors": 14,
+        "wer": 0.7
+      },
+      "wer_norm": {
+        "sub": 10,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 20,
+        "errors": 11,
+        "wer": 0.55
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 31,
+      "clip_id": "41239_1",
+      "seconds": 7.8,
+      "sha256": "232f7f601c7d0808",
+      "turns": 2,
+      "elapsed_s": 13.39,
+      "errors": [],
+      "ref": "اشوه عيب ما عيب يا خوي، جان فيك دقدقة و فيك هوى، سير البر هناك ياخي، طفرت بنا، هنا ناس يالسين تحتك و انت يالس  [...]",
+      "hyp": "الشوع. يا اخوي كان فيك دكتيك او فيك هو سير البر هناك يا اخي طفرت ابنه هنا هنا ساكنة تحتكت يا ست دكتيك فوقهم",
+      "ref_full_withheld": true,
+      "ref_words": 27,
+      "hyp_words": 24,
+      "wer_raw": {
+        "sub": 14,
+        "del": 4,
+        "ins": 1,
+        "ref_words": 27,
+        "errors": 19,
+        "wer": 0.7037
+      },
+      "wer_norm": {
+        "sub": 14,
+        "del": 4,
+        "ins": 1,
+        "ref_words": 27,
+        "errors": 19,
+        "wer": 0.7037
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 32,
+      "clip_id": "41240_1",
+      "seconds": 12.05,
+      "sha256": "cd77086cc974a351",
+      "turns": 1,
+      "elapsed_s": 14.63,
+      "errors": [],
+      "ref": "وابوي، كيه تفاتنوا على عمي انتو؟ فيكم خبل انتو؟ الحين الريال ملكة بنته الليلة، مادري عرسها، انزين، تقوموا تفات [...]",
+      "hyp": "وابوي كيف تفاتنوا على عميتم فيكم خبال انتو احين ريال ملكت بنته الليلة ما ادري عرسته ازاي تقول تفاتنوا عليه صدق [...]",
+      "ref_full_withheld": true,
+      "ref_words": 36,
+      "hyp_words": 35,
+      "wer_raw": {
+        "sub": 23,
+        "del": 2,
+        "ins": 1,
+        "ref_words": 36,
+        "errors": 26,
+        "wer": 0.7222
+      },
+      "wer_norm": {
+        "sub": 19,
+        "del": 2,
+        "ins": 1,
+        "ref_words": 36,
+        "errors": 22,
+        "wer": 0.6111
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 33,
+      "clip_id": "41240_2",
+      "seconds": 5.15,
+      "sha256": "11ef48ffea7aa693",
+      "turns": 1,
+      "elapsed_s": 6.92,
+      "errors": [],
+      "ref": "طلعولي قرون، الا طلعولي قرون و نبتلي ريش على ظهري و طلعلي ذيل بعد",
+      "hyp": "طلعوا لقرون هل يطلعوا لقرون اللي بات لريش على ظهري وطلع لذيل بعد",
+      "ref_full_withheld": true,
+      "ref_words": 14,
+      "hyp_words": 13,
+      "wer_raw": {
+        "sub": 10,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 14,
+        "errors": 11,
+        "wer": 0.7857
+      },
+      "wer_norm": {
+        "sub": 10,
+        "del": 1,
+        "ins": 0,
+        "ref_words": 14,
+        "errors": 11,
+        "wer": 0.7857
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 34,
+      "clip_id": "41254_1",
+      "seconds": 5.28,
+      "sha256": "898bb0e484f148f5",
+      "turns": 1,
+      "elapsed_s": 6.92,
+      "errors": [],
+      "ref": "قاموا يعرفون التطير و التطاير، جنه ضبابة عطتهم درس في التطير",
+      "hyp": "كما يعرفون التطير والتطاير تناذبابا عطتهم درس في التطير",
+      "ref_full_withheld": true,
+      "ref_words": 11,
+      "hyp_words": 9,
+      "wer_raw": {
+        "sub": 3,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 11,
+        "errors": 5,
+        "wer": 0.4545
+      },
+      "wer_norm": {
+        "sub": 3,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 11,
+        "errors": 5,
+        "wer": 0.4545
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 35,
+      "clip_id": "41268_1",
+      "seconds": 6.5,
+      "sha256": "bf6d8be118ab5689",
+      "turns": 1,
+      "elapsed_s": 8.85,
+      "errors": [],
+      "ref": "ممكن تاكلون من تبن و تسكتون، و تخلوني أنا أتفاهم ويا أنسابي في هالمواضيع هذي؟ ممكن؟",
+      "hyp": "ممكن تاكلون من تبن وتسكتون وتخلوني انا ادفعهم يا انساب في المواضيع هذه ممكن",
+      "ref_full_withheld": true,
+      "ref_words": 16,
+      "hyp_words": 14,
+      "wer_raw": {
+        "sub": 9,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 16,
+        "errors": 11,
+        "wer": 0.6875
+      },
+      "wer_norm": {
+        "sub": 7,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 16,
+        "errors": 9,
+        "wer": 0.5625
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
+    },
+    {
+      "corpus": "casablanca",
+      "offset": 36,
+      "clip_id": "41272_2",
+      "seconds": 4.97,
+      "sha256": "5e581fbe48d8e521",
+      "turns": 1,
+      "elapsed_s": 6.39,
+      "errors": [],
+      "ref": "نعم، شفته و ضربني يا اخوي فجر علي صمامين، و خلاني أرتقل جذه ها",
+      "hyp": "نعم شفته وظهر بالي اخوي فجر عليه صمامين وخلى انا ارتقل كده",
+      "ref_full_withheld": true,
+      "ref_words": 14,
+      "hyp_words": 12,
+      "wer_raw": {
+        "sub": 9,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 14,
+        "errors": 11,
+        "wer": 0.7857
+      },
+      "wer_norm": {
+        "sub": 6,
+        "del": 2,
+        "ins": 0,
+        "ref_words": 14,
+        "errors": 8,
+        "wer": 0.5714
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0
     }
   ]
 }

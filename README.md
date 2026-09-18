@@ -11,9 +11,8 @@ it cannot silently stop being true. Nothing in this README is quoted from
 documentation.
 
 ```sh
-python3 selftest.py            #  97 checks, no API key needed
-python3 test_arabic_numbers.py # 232 checks
-python3 test_agent.py          # 352 checks
+./check.sh          # every suite, no API key needed, exits non-zero on failure
+./check.sh --live   # also the ones that open a real socket
 ```
 
 ---
@@ -42,7 +41,7 @@ Arabic speech, with no error.
 
 | # | Finding | Consequence |
 |---|---|---|
-| 1 | **Numbers come back as Arabic words**, never digits. The audio said nine; the transcript says `تسعة`. | Any agent matching `\d` finds nothing, books no time, and raises no error. |
+| 1 | **Numbers usually come back as Arabic words.** The audio said nine; the transcript says `تسعة`. Measured later on 30 real human clips: 4 of 30 came back as ASCII digits instead (`100 نقطة`, `6.5 درجة`). | The behaviour is INCONSISTENT, which is worse than either pure case: an agent matching `\d` finds nothing most of the time and something occasionally, and raises no error either way. The parser handles both. |
 | 2 | **Partials are revised, not extended.** `إلى السنة` ("to the year") became `إلى الساعة تسعة` ("to nine o'clock"), with no retraction event. | Prefix-matched barge-in fires on words the caller never said, and cannot be undone. |
 | 3 | **Twilio's native 20 ms frame is rejected**, `error_code 3007`, and the socket closes. Legal range is 50 to 1000 ms. | "Forward the phone bytes unchanged" does not work. Aggregation is mandatory and costs up to 100 ms. |
 | 4 | **Arabic returns fully punctuated and formatted** on every partial, although `format_turns` is documented as unavailable on this model and was never sent. | The doc reads backwards: there is no toggle because formatting is always on. |
@@ -140,9 +139,45 @@ This is a **synthetic speaker on a clean line**. It shows the path holds across
 many numbers rather than one. It is not evidence of accuracy on real callers,
 dialect or noise, and is not quoted as if it were.
 
+## Accuracy on real human Arabic, measured
+
+Every other number in this repo came from synthetic or captured-synthetic audio,
+which is plausibly easier for an ASR model than a human. `human_wer.py` replaces
+that with real speakers, on two public corpora, streamed to the live socket.
+
+| | FLEURS `ar_eg`, read MSA | Casablanca `UAE`, spontaneous Emirati |
+|---|---|---|
+| WER, raw | 0.225 | 0.700 |
+| WER, normalised | **0.092** | **0.588** |
+| clips over 0.5 WER | 0 of 30 | 20 of 30 |
+
+**The gap between those two columns is the whole finding.** Read Modern Standard
+Arabic from a real human transcribes well. Spontaneous Gulf dialect off
+television does not: at 0.588 an agent is working from roughly three wrong words
+in five, with 11% of the reference simply deleted. Normalisation cannot rescue
+that and was not asked to; the ablation shows 59% of the FLEURS error was merely
+orthographic against only 16% of the dialect error.
+
+Two things worth knowing that the WER number alone does not say:
+
+- **The service inserts words nobody said.** On the cleanest clip in the set it
+  prepended `إيه.`, a filler the speaker never uttered, and that is the first
+  token any keyword match or barge-in would see.
+- **Across all 60 transcripts: zero presentation forms, zero bidi controls, zero
+  replacement characters.** The claim that this service returns clean logical
+  Arabic previously rested on one sentence. It now rests on sixty.
+
+Stated plainly: **neither corpus is what this agent is for.** FLEURS is read
+speech into a good microphone and Casablanca is broadcast television.
+Spontaneous Gulf dialect over an 8 kHz phone line has still never been measured,
+and the codec loss sits on top of 0.588 in an unknown direction. Thirty clips per
+corpus is indicative, not settled, and these figures are not comparable to any
+published WER tier because a WER is a property of a test set and a normalisation
+rather than of a model.
+
 ## What does not work
 
-- **Accuracy beyond synthetic audio is unmeasured.** No real callers, no dialect variety, no noise, no mobile codec.
+- **Spontaneous dialect is where it breaks, and that is now measured rather than feared.** See below.
 - **Real microphone capture is unverified.** Chrome's fake device exercised the worklet, the resampler and the framing; it emits a tone, not speech. No Arabic has gone through a real microphone on the browser path.
 - **The agent has no calendar.** It will happily confirm a slot that is already booked, and `done` writes nothing anywhere.
 - **The agent still sounds like an agent.** It returns the salaam and echoes what it heard, which moved it from being clocked as a machine in two turns to four or five. The residual tell is sentence shape, and the clock speaks formal MSA ordinals inside an otherwise Gulf-colloquial script.

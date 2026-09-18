@@ -39,7 +39,7 @@ stop being true.
 
 | # | Finding | Why it matters to anyone building this |
 |---|---|---|
-| 1 | **Numbers come back as Arabic words**, never digits. The audio said nine; the transcript says `تسعة`. | Every booking agent matching `\d` finds nothing, books no time, and raises no error. This repo ships the parser. |
+| 1 | **Numbers usually come back as Arabic words**, and sometimes as digits. The audio said nine; the transcript says `تسعة`. On 30 real human clips, 4 returned ASCII digits. | The inconsistency is the finding. An agent matching `\d` finds nothing most of the time and something occasionally, with no error either way. This repo ships a parser that takes both. |
 | 2 | **Partials are revised, not extended.** `إلى السنة` ("to the year") became `إلى الساعة تسعة` ("to nine o'clock"), with no retraction event. | Prefix-matched barge-in fires on words the caller never said, and the action cannot be taken back. |
 | 3 | **Twilio's native 20 ms frame is rejected** with `error_code 3007`, which closes the socket. Legal range is 50 to 1000 ms. | The obvious "forward the phone bytes unchanged" design does not work. Aggregation is mandatory and costs up to 100 ms. |
 | 4 | **Arabic returns fully punctuated and formatted** on every partial, though `format_turns` is documented as unavailable on this model and was never sent. | The doc reads backwards: there is no toggle because formatting is always on. |

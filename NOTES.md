@@ -817,3 +817,217 @@ result because it looks like a finding.
 3. Move barge-in off partials in `call_agent` — **still not done.** The rule is documented and tested here; `call_agent/server.py` is untouched.
 4. Multi-turn — **done**, §13.1. Mid-turn reconnect on the live service is still untested.
 5. Accuracy on genuinely human Arabic — **still open, and now the single biggest gap.** Everything measured here has been synthetic or captured-synthetic audio.
+
+---
+
+## 17. Word error rate on genuinely human Arabic (`human_wer.py`, 2026-09-18)
+
+§7 item 1 and §16 item 5 said the same thing in two places: **every accuracy
+figure in this repo came from synthetic or captured-synthetic audio.**
+`number_e2e.py` is the macOS `Majed` voice reading clean text, and
+`fixtures/v3_session_arabic.jsonl` is one captured sentence from the same voice.
+A TTS speaker on a clean line is plausibly EASIER for an ASR model than a human,
+so 12 of 12 is a floor on failure modes and not evidence of robustness.
+
+That gap is now measured rather than admitted. `human_wer.py` pulls real
+recorded human Arabic with ground-truth transcripts from two public corpora via
+the Hugging Face datasets-server rows API, transcodes to 16 kHz mono PCM16,
+streams each clip to the same live `universal-3-5-pro` socket the agent uses, and
+computes standard word error rate: Levenshtein over word sequences, (S+D+I)/N,
+stdlib only, no `jiwer`.
+
+### 17.1 Two corpora, because one number would have flattered us
+
+| | `fleurs` | `casablanca` |
+|---|---|---|
+| dataset | `google/fleurs`, config `ar_eg`, split `test` | `UBC-NLP/Casablanca`, config `UAE`, split `test` |
+| licence | CC BY 4.0 | CC BY-NC-ND 4.0 |
+| speech | READ Modern Standard Arabic, Egyptian speakers, clean single-speaker recordings | SPONTANEOUS Emirati dialect off television, real conversation, music and effects under it |
+| sample | 30 clips, 315.4 s, row offsets 0-30, 6.0-18.5 s each | 30 clips, 177.2 s, row offsets 0-36, 2.3-13.8 s each |
+
+Mozilla Common Voice Arabic was the first candidate and is **not usable through
+this path**, which is worth recording so nobody burns an hour on it again:
+`mozilla-foundation/common_voice_17_0` and `_13_0` return `EmptyDatasetError`
+from the rows API, `_11_0` returns "does not exist, or is not accessible" even
+with a token because the terms have not been accepted on this account, and the
+`fsicoli/*` mirrors return 501, "the dataset viewer doesn't support this dataset
+because it runs arbitrary Python code". `halabi2016/arabic_speech_corpus` fails
+the same way. Those are answers, not obstacles, and each was recorded rather
+than fought.
+
+### 17.2 The numbers, with the sample size attached to every one
+
+**30 clips per corpus. That is indicative and it is not a settled question.**
+
+| | `fleurs` (read MSA) | `casablanca` (Emirati dialect) |
+|---|---|---|
+| **WER raw** | **0.225** | **0.700** |
+| | S 116, D 6, I 2, over 551 reference words | S 255, D 51, I 12, over 454 reference words |
+| **WER normalised** | **0.092** | **0.588** |
+| | S 44, D 6, I 1 | S 199, D 51, I 15 |
+| against the corpus's own normalised reference | 0.092 | corpus ships one reference |
+| per clip: best / median / worst | 0.000 / 0.069 / 0.346 | 0.281 / 0.619 / 1.167 |
+| clips over 0.5 WER | 0 of 30 | 20 of 30 |
+| clips exactly 0.000 after normalisation | 9 of 30 | 0 of 30 |
+| empty hypotheses | 0 | 0 |
+| stream errors, socket errors | 0 | 0 |
+
+**Read Modern Standard Arabic transcribes well. Spontaneous Emirati dialect does
+not.** 0.588 means roughly three words in five are wrong, and the split matters:
+**51 deletions out of 451 reference words**, so more than a tenth of what was
+said never appears in the transcript at all, and one clip scored 1.167, worse
+than emitting nothing.
+
+The two figures are never blended into one. A single averaged number would be
+arithmetic with no referent.
+
+### 17.3 The normalisation, spelled out, because a WER without it is meaningless
+
+Applied to BOTH sides, in this order: NFC compose; strip tashkeel and Quranic
+marks (U+0610-061A, U+064B-065F, U+0670, U+06D6-06ED); strip tatweel U+0640;
+alef forms أ إ آ ٱ to ا; alef maqsura ى to ي; ta marbuta ة to ه; Arabic-Indic
+digits to ASCII; drop every Unicode punctuation codepoint; collapse whitespace.
+
+Deliberately NOT applied, and each omission is a decision: ؤ to و and ئ to ي,
+because that heavier fold merges more genuinely different words; dropping the
+definite article, because that hides a real agreement error; any stemming,
+because a stem match is not a word match. The two folds that CAN merge real word
+pairs are ة/ه and ى/ي, and they are named here rather than hidden.
+
+The gap between raw and normalised is itself the finding, and an ablation says
+where it comes from:
+
+| cumulative normalisation | `fleurs` | `casablanca` |
+|---|---|---|
+| raw | 0.225 | 0.700 |
+| + punctuation | 0.145 | 0.616 |
+| + diacritics and tatweel | 0.094 | 0.616 |
+| + alef forms and digits | 0.094 | 0.588 |
+| + ya and ta-marbuta (full) | 0.092 | 0.588 |
+
+On read MSA, **59 per cent of the apparent error was orthography**: punctuation
+alone accounts for 8 points and the reference's diacritics for 5 more, because
+FLEURS `raw_transcription` is partly vocalised and the service never returns
+tashkeel. On dialect only 16 per cent of the error was orthographic, so the
+remaining 0.588 is the model hearing different words, not spelling them
+differently. **Normalisation cannot rescue the dialect number and it is not
+being asked to.**
+
+### 17.4 The Arabic that comes back is CLEAN, now checked on 60 transcripts
+
+Across all 60 hypotheses, 962 transcript words:
+
+```
+  presentation-form codepoints   0
+  bidi control characters        0
+  U+FFFD replacement char        0
+```
+
+The claim that AssemblyAI returns correctly ordered logical Arabic had been
+verified on exactly one sentence. It now holds on 60, from two corpora and two
+dialects. Speaker gender is in both corpora and was NOT recorded in this run, so
+nothing is claimed about it. The detector derives a positional form from the
+codepoint NAME rather than a block range, because the presentation-forms blocks
+are interleaved: the ornate parentheses U+FD3E and U+FD3F sit inside the range
+and are not positional forms at all, so a range test reports corruption on
+Islamic heritage text that is perfectly fine.
+
+### 17.5 A correction to Finding 1, found by reading the output
+
+Finding 1 says numbers come back as Arabic words, never digits. **That is
+narrower than stated.** On human read speech the service emitted ASCII digits on
+4 of 30 FLEURS clips: `مائة نقطة` came back as `100 نقطة`, `مائة في المئة` as
+`100%`, and `6.5 درجة` stayed `6.5`.
+
+So the true behaviour is **inconsistent**, which is worse than either pure case
+and is exactly the shape of bug that reaches production: clock-style small
+numbers arrive as words, large quantities and decimals arrive as digits, and
+nothing announces which. `arabic_numbers.py` already parses both, checked
+directly, so the agent survives this; a parser written against CONSTRAINT 2 as
+worded would not have.
+
+### 17.6 Read the output, because the metric cannot tell you these things
+
+FLEURS, worst clip of the thirty, WER 0.346 normalised:
+
+```
+  ref: جرت التقاليد على أن وظيفة القوّات البحريّة هي ضمان قدرة بلدك على نقل شعبك وبضائعه
+  hyp: قالت التقارير على أن وظيفة القوة البحرية هي ضمان كودريت بالك على نقل شعبه وبضائحه
+```
+
+`جرت التقاليد` ("tradition has it") became `قالت التقارير` ("the reports said"),
+and `قدرة بلدك` became `كودريت بالك`, which is not Arabic at all: the model fell
+through to a phonetic spelling. Both are real errors and no normalisation should
+ever repair them.
+
+FLEURS, median clip, WER 0.069:
+
+```
+  ref: لكن بسبب موقعها "القريب من المناطق الاستوائية" ببضع درجات فقط شمال الخط الاستوائي
+  hyp: إيه. لكن بسبب موقعها القريب من المناطق الاستوائية ببضع درجات فقط شمال الخط الاستوائي
+```
+
+**The service prepended `إيه.`, a filler the speaker did not say.** That is an
+insertion out of nothing, on the cleanest audio in the set, and for a booking
+agent an invented leading token is not cosmetic: it is the token a barge-in or a
+keyword match sees first.
+
+Casablanca, median clip, WER 0.619, quoted as a short excerpt because the corpus
+is no-derivatives:
+
+```
+  ref: عساكم من العايدين، و الفايزين، و كل سنة و كل حول، إن شاء الله، سامحونا تعبانين من البارحة، برقد، عن اذنكم
+  hyp: أساكم العايدين والفائزين وكل سنة وكل حول إن شاء الله سامحونا تعباني من البرحة برضو أنا فيكم
+```
+
+The Eid greeting survives almost intact, then the colloquial tail collapses:
+`برقد` ("I am going to sleep") became `برضو`, and `عن اذنكم` ("excuse me", the
+speaker leaving) became `أنا فيكم`. **The polite formulas transcribe and the
+dialectal verbs do not**, which is the pattern across the set and is precisely
+the half a booking agent needs.
+
+### 17.7 What this establishes and what it does not
+
+Establishes:
+
+- Read MSA from real humans transcribes at **0.092 WER normalised on 30 clips**, so the pipeline is not broken on human speech and the synthetic result was not carrying it.
+- Spontaneous Emirati dialect transcribes at **0.588 WER normalised on 30 clips**, and an agent built on that transcript is working from three wrong words in five.
+- The returned Arabic is clean and logically ordered on 60 transcripts, not one.
+- The service inserts words that were never spoken, and formats numbers inconsistently.
+
+Does not establish:
+
+- **Neither corpus is what this agent is for.** FLEURS is read speech into a good microphone. Casablanca is broadcast television. **What the agent actually hears is spontaneous Gulf dialect on an 8 kHz phone line, and that has still never been measured.** The phone codec is a further loss on top of the dialect number, in an unknown direction and amount.
+- 30 clips per corpus is indicative, not settled. A 30-clip result must be quoted as a 30-clip result.
+- These figures are **not comparable to any published WER tier**, ours or a vendor's, because they were measured on different audio. A WER is a property of a test set and a normalisation, not of a model.
+- Nothing here measures latency, dialect coverage beyond Emirati and Egyptian, overlapping speakers, or a hostile line.
+
+### 17.8 Method, and the two traps in it
+
+**Multi-turn joining.** A real clip is long enough to be committed as several
+turns: 8 of 60 came back as 2 or 3. Taking the LAST committed turn, which is
+enough for a one-sentence probe and is what `number_e2e.py` does, silently
+discards most of the words and reports a beautiful deletion-heavy WER. The
+hypothesis is every committed turn joined in `turn_order`.
+
+**Connection pacing.** Each clip is a new socket and the free tier caps NEW
+connections at 5 per minute. Tripping it surfaces as empty transcripts, which is
+a WER of 1.0 that looks like a finding about Arabic and is really a finding about
+our own pacing. `--gap` defaults to 13 s, audio is streamed at real time so the
+endpointer sees pauses that actually happened, and the run reports 0 empty
+hypotheses and 0 socket errors, so no figure above is rate limiting in disguise.
+
+**Licence handling.** No audio is committed; `audio_cache/` is gitignored.
+FLEURS is CC BY 4.0, so `fixtures/human_wer.json` carries its reference and
+hypothesis text in full. Casablanca is CC BY-NC-ND 4.0, so the committed JSON
+carries metrics plus excerpts capped at 110 characters, and the full text stays
+in the local cache. Dataset id, config, split and every row offset are recorded,
+so the sample is reproducible by anyone without trusting this file.
+
+`python3 human_wer.py --cached` re-scores the finished run with no streaming and
+no API key, which is what made the ablation table above affordable: changing a
+normalisation rule must not cost 60 live sockets.
+
+### 17.9 §16 item 5, updated
+
+5. ~~Accuracy on genuinely human Arabic~~ - **measured**, this section. Read MSA 0.092, Emirati dialect 0.588, 30 clips each. The remaining gap is narrower and sharper: **spontaneous Gulf dialect over a real 8 kHz phone line**, which is the only audio this agent will ever actually hear.
