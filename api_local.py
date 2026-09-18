@@ -101,11 +101,21 @@ class Router(BaseHTTPRequestHandler):
 
 
 def check(port: int) -> int:
-    """Exercise both endpoints for real. No mocks, no assumptions."""
+    """Exercise both endpoints for real. No mocks, no assumptions.
+
+    Binds an EPHEMERAL port (0) rather than the serving port, and this is not
+    tidiness. If the check bound a fixed port that something else already held,
+    the bind fails - and if the check instead just talked to that address, every
+    request would be answered by the OTHER process and the suite would pass
+    while testing nothing. A green result from the wrong server is far worse
+    than a red one. Asking the kernel for a free port makes that impossible.
+    """
     srv = ThreadingHTTPServer(("127.0.0.1", port), Router)
+    port = srv.server_address[1]
     import threading
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{port}"
+    print(f"  checking against our own instance on port {port}\n")
     failures = []
 
     def show(label: str, ok: bool, detail: str = "") -> None:
@@ -194,7 +204,8 @@ def main() -> None:
     args = p.parse_args()
 
     if args.check:
-        raise SystemExit(check(args.port))
+        # Port 0 = let the kernel pick a free one. See check().
+        raise SystemExit(check(0 if args.port == 8812 else args.port))
 
     if not WEB.is_dir():
         print(f"  note: {WEB} does not exist yet, so only /api/* will answer")

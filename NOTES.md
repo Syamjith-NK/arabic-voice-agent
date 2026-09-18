@@ -396,3 +396,109 @@ All 8 caught with exit 1; reverted to 232/232 exit 0.
   way this lexicon expects across dialect, noise and long turns is unmeasured --
   same caveat as section 7 item 1.
 - **Not wired into anything.** `call_agent/server.py` is still untouched.
+
+---
+
+## 11. The agent (`agent.py`), added 2026-09-18
+
+Answers the "no conversation, no intent, no reply" gap in §8. Deterministic
+slot-filling booking agent for a UAE photo/video studio. Stdlib only, no new
+dependency. `test_agent.py`: **275/275, exit 0**.
+
+### The measured case for rules-first
+
+| Path | Measured |
+|---|---|
+| Rules turn (median of 400) | **0.018 ms** |
+| Rules turn p95 / max | 0.030 ms / 0.068 ms |
+| `arabic_numbers.parse_time` alone | 5.6 us |
+| Ollama `qwen2.5:7b-instruct`, **warm** | **1,431-1,940 ms** |
+| Ollama `qwen2.5:7b-instruct`, **cold** | **8,226 ms** |
+
+So a normal turn is roughly **fifty thousand times cheaper** than one LLM call,
+and the LLM is only reached when pattern matching extracts nothing. `llm=None` is
+a fully working agent. Note the cold number: the default 2.5 s timeout means the
+first LLM call after boot **will** time out and fall back to the scripted line.
+That is the intended behaviour - a scripted clarification beats 8 s of silence -
+but it means the model wants pre-warming if the LLM path is to be usable at all.
+
+### CONSTRAINT 5 - the local LLM lies, and it lied on the first two calls
+
+Not a hypothetical. The first two real replies from `qwen2.5:7b-instruct`, to the
+agent's own prompt:
+
+```
+تبلغ تكلفة التصوير معنا 200 درهم إماراتي.        <- invented a price
+ساعات عمل استوديو التصوير是从周一到周五上午9点...   <- switched to Chinese
+```
+
+A later live run leaked **Spanish** (`aparcar`) into an Arabic sentence. Three
+different failures in a handful of calls.
+
+The price one is the dangerous one: there is no price list anywhere in this repo,
+so every figure it emits is fabricated, and a fabricated quote spoken to a caller
+is a commercial commitment. The fix is not a blocklist of lies. **The LLM's role
+is fenced by SHAPE**: its only legal output is a short clarifying *question*.
+`llm_output_is_safe()` refuses anything that (1) is not a question, (2) contains
+any digit or currency unit, (3) contains a non-Arabic script, or (4) is long or
+multi-line. Discarding costs nothing because the scripted clarification is always
+available, so the gate is deliberately strict.
+
+Worth noting: **the Chinese reply passes `verify_arabic()` cleanly** - no
+presentation forms, no bidi controls. Script purity is a genuinely separate gate,
+not a second corruption check.
+
+### CONSTRAINT 3 enforced, not just documented
+
+`BookingAgent.handle_turn()` **raises** on a partial, and `ACTS_ON` is readable
+by the integration. Partial-driven barge-in stays the caller's business; nothing
+in the agent can act on revised text.
+
+### The thesis, enforced in code
+
+Every reply passes `verify_arabic()` before it is returned, and the agent
+**raises** rather than speaking corrupted Arabic. Presentation forms are derived
+from `unicodedata.name()`, not from the U+FB50-U+FEFF range, so the ornate
+parentheses U+FD3E/U+FD3F that enclose a Quranic quotation are **not** flagged -
+the range-based version of this check is what produced a 35.6% false-positive
+corruption rate against Islamic heritage text in an earlier audit in this
+workspace. There is a test asserting they pass.
+
+### Mutation-tested
+
+Seven mutations, every one caught with exit 1. **Three initially SURVIVED** and
+the tests were strengthened until they did not - the pass count was flattering
+the suite:
+
+| Mutation | First run | Isolating test added |
+|---|---|---|
+| `verify_arabic` stops scanning | caught | - |
+| LLM allowed to assert, not just ask | caught | - |
+| LLM digit gate removed | **survived** | Arabic-Indic `٩`, which clears the script and currency gates |
+| Script-purity gate removed | caught | - |
+| `load_state` trusts any state string | **survived** | assert the state that comes OUT is always valid |
+| `_apply` mutates the caller's dict | caught | - |
+| Correction takes the REJECTED value | **survived** | `فيديو مو فوتوغرافي` - the time case passes either way |
+
+That last one is the instructive one. `الساعة عشرة مو تسعة` is the obvious
+correction test and it **cannot** detect the bug, because a time parser reading
+left to right lands on the right answer whether or not the text after `مو` is
+discarded. The service table is scanned in a fixed order with photo first, so
+`فيديو مو فوتوغرافي` resolves to the rejected service unless the split works.
+
+### Known weak or unbuilt
+
+- **The Arabic is serviceable, not warm.** It is a competent receptionist reading
+  a form: correct, Gulf-flavoured (`وين`, `زين`, `بكرة`), never idiomatic. It
+  does not small-talk, sympathise, or vary sentence shape beyond a four-item ack
+  rotation. A native speaker would clock it as a machine inside two turns.
+- **The LLM clarification stacks two questions** ("ما هي الخدمات التي ترغب...؟
+  أي نوع تصوير تحتاج؟"). Safe, redundant, slightly clumsy on a phone line.
+- **No availability check, no calendar, no persistence.** The agent will happily
+  confirm a slot that is already booked; `done: true` writes nothing anywhere.
+- **Dialect coverage is a keyword list**, tested against phrasing I wrote myself.
+  Unmeasured against real Gulf callers, which is the same caveat §7 makes about
+  the ASR accuracy.
+- **No multi-booking, no cancel, no reschedule** - one booking per conversation.
+- The escalation path (a slot given up after 3 tries) marks the field "to be
+  confirmed later" and **relies on a human who does not exist yet**.

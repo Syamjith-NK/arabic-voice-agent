@@ -1,0 +1,174 @@
+{
+  "rows": [
+    {
+      "text": "أبغى أحجز تصوير الساعة تسعة صباحاً",
+      "kind": "time",
+      "expect": [
+        9,
+        0
+      ],
+      "transcript": "أبغى أحجز تصوير الساعة تسعة صباحاً",
+      "parsed": [
+        9,
+        0
+      ],
+      "ok": true,
+      "transcript_exact": true,
+      "elapsed_s": 5.63,
+      "note": ""
+    },
+    {
+      "text": "خلها الساعة الثالثة بعد الظهر",
+      "kind": "time",
+      "expect": [
+        15,
+        0
+      ],
+      "transcript": "خلها الساعة الثالثة بعد الظهر",
+      "parsed": [
+        15,
+        0
+      ],
+      "ok": true,
+      "transcript_exact": true,
+      "elapsed_s": 4.95,
+      "note": ""
+    },
+    {
+      "text": "نبدأ الساعة السابعة والنصف مساءً",
+      "kind": "time",
+      "expect": [
+        19,
+        30
+      ],
+      "transcript": "نبدأ الساعة السابعة والنصف مساءً",
+      "parsed": [
+        19,
+        30
+      ],
+      "ok": true,
+      "transcript_exact": true,
+      "elapsed_s": 5.52,
+      "note": ""
+    },
+    {
+      "text": "الموعد الساعة الخامسة إلا ربعاً مساءً",
+      "kind": "time",
+      "expect": [
+        16,
+        45
+      ],
+      "transcript": "الموعد الساعة الخامسة إلا ربع مساءً",
+      "parsed": [
+        16,
+        45
+      ],
+      "ok": true,
+      "transcript_exact": false,
+      "elapsed_s": 6.16,
+      "note": ""
+    },
+    {
+      "text": "تعال الساعة العاشرة والربع صباحاً",
+      "kind": "time",
+      "expect": [
+        10,
+        15
+      ],
+      "transcript": "تعالى الساعة العاشرة وربع صباحاً",
+      "parsed": [
+        10,
+        15
+      ],
+      "ok": true,
+      "transcript_exact": false,
+      "elapsed_s": 5.26,
+      "note": ""
+    },
+    {
+      "text": "الساعة الحادية عشرة والنصف ليلاً",
+      "kind": "time",
+      "expect": [
+        23,
+        30
+      ],
+      "transcript": "الساعة الحادية عشرة والنصف ليلاً",
+      "parsed": [
+        23,
+        30
+      ],
+      "ok": true,
+      "transcript_exact": true,
+      "elapsed_s": 5.43,
+      "note": ""
+    },
+    {
+      "text": "نحتاج ثلاث كاميرات",
+      "kind": "quantity",
+      "expect": 3,
+      "transcript": "نحتاج ثلاث كاميرات",
+      "parsed": 3.0,
+      "ok": true,
+      "transcript_exact": true,
+      "elapsed_s": 3.84,
+      "note": ""
+    },
+    {
+      "text": "عندنا خمسة عشر شخصاً في الاستوديو",
+      "kind": "quantity",
+      "expect": 15,
+      "transcript": "عندنا خمسة عشر شخصاً في الستوديو",
+      "parsed": 15.0,
+      "ok": true,
+      "transcript_exact": false,
+      "elapsed_s": 5.09,
+      "note": ""
+    },
+    {
+      "text": "الفريق خمسة وأربعين شخصاً",
+      "kind": "quantity",
+      "expect": 45,
+      "transcript": "الفريق خمسة واربعين شخصاً",
+      "parsed": 45.0,
+      "ok": true,
+      "transcript_exact": false,
+      "elapsed_s": 4.6,
+      "note": "units-first waw compound"
+    },
+    {
+      "text": "التصوير يحتاج ساعتين",
+      "kind": "quantity",
+      "expect": null,
+      "transcript": "التصوير يحتاج ساعتين",
+      "parsed": null,
+      "ok": true,
+      "transcript_exact": true,
+      "elapsed_s": 3.8,
+      "note": "dual form, known gap"
+    },
+    {
+      "text": "الميزانية ثلاثة آلاف وخمسمئة درهم",
+      "kind": "quantity",
+      "expect": 3500,
+      "transcript": "الميزانية ثلاثة آلاف وخمسمائة درهم",
+      "parsed": 3500.0,
+      "ok": true,
+      "transcript_exact": false,
+      "elapsed_s": 6.61,
+      "note": ""
+    },
+    {
+      "text": "رقم الغرفة مئتين وثلاثين",
+      "kind": "quantity",
+      "expect": 230,
+      "transcript": "رقم الغرفة مئتين وثلاثين",
+      "parsed": 230.0,
+      "ok": true,
+      "transcript_exact": true,
+      "elapsed_s": 8.65,
+      "note": ""
+    }
+  ],
+  "voice": "Majed",
+  "paced": true
+}
