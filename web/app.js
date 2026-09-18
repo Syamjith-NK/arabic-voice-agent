@@ -47,7 +47,29 @@
 
   var params = new URLSearchParams(location.search);
   var MOCK   = params.get('mock') === '1';
-  var DIRECT = params.get('direct') === '1' && !MOCK;
+
+  /* MODE SELECTION, AND WHY THE DEFAULT IS WHAT IT IS.
+   *
+   * `bridge` used to be the default and that was a real defect on the hosted
+   * demo. Bridge needs a long-lived websocket server on /ws. The deployment is
+   * static files plus two stateless functions, so there is no such server, and
+   * anyone opening the bare URL got "the socket closed before it opened, code
+   * 1006" instead of a demo. The owner found it by opening the live link on a
+   * phone, which is exactly how a judge would find it.
+   *
+   * So the default now follows what the host can actually serve:
+   *   - a LOCAL host can be running server.py, so bridge stays the default there
+   *   - anywhere else there is no /ws, so `direct` is the only mode that works,
+   *     and direct is the architecture the hosted demo was built around anyway
+   *
+   * Both remain forceable with ?direct=1 or ?bridge=1, so nothing is lost for
+   * development.
+   */
+  var LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) ||
+              location.protocol === 'file:';
+  var FORCED_BRIDGE = params.get('bridge') === '1';
+  var FORCED_DIRECT = params.get('direct') === '1';
+  var DIRECT = !MOCK && !FORCED_BRIDGE && (FORCED_DIRECT || !LOCAL);
   var MODE   = MOCK ? 'mock' : (DIRECT ? 'direct' : 'bridge');
   var SPEED  = parseFloat(params.get('speed')) || 1;
 
