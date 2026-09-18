@@ -283,3 +283,116 @@ Claims to avoid:
    and intent routing off partials** or gate them on `end_of_turn` (Constraint 3).
 4. Test a real multi-turn call and a mid-turn reconnect.
 5. Measure accuracy on a genuinely human Arabic recording, not TTS.
+
+
+---
+
+## 11. The Arabic number-word parser (CONSTRAINT 2, built 2026-09-18)
+
+`arabic_numbers.py` + `test_arabic_numbers.py`. **stdlib only** -- `re`,
+`unicodedata`, `typing`. No new dependency, so the repo still installs with
+nothing but `numpy` and `websockets`. Runs on the 3.9.6 CommandLineTools
+interpreter and on 3.14.7; no `match` statements, no `X | Y` runtime unions.
+
+This closes section 10 item 2. It does not touch anything else in the repo.
+
+### API
+
+```python
+parse_numbers(text)    -> list[NumberMatch]   # .value .surface .start .end
+normalize_digits(text) -> str                 # number spans -> Western digits
+parse_time(text)       -> ParsedTime | None   # .hour .minute .surface .explicit_period
+parse_quantity(text)   -> float | None
+```
+
+### On the real captured sentence
+
+```
+هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟
+  -> ParsedTime(hour=9, minute=0, surface='الساعة تسعة صباحاً', explicit_period=True)
+  -> normalize_digits: هل يمكنكم تأجيل التصوير إلى الساعة 9 صباحاً؟
+```
+
+Read off `fixtures/v3_session_arabic.jsonl` by the test itself, not re-typed.
+The two **revised** partials from CONSTRAINT 3 are also asserted: `إلى السنة`
+("to the year") must yield **no time at all** rather than a wrong one.
+
+### Test output
+
+```
+$ python3 test_arabic_numbers.py
+  ... 17 sections, every case printed ...
+  232/232 passed
+$ echo $?
+0
+```
+
+### Mutation results -- each guard reintroduced as a bug, suite must fail
+
+| Mutation | Caught by | Symptom |
+|---|---|---|
+| Drop units-first waw handling | section 4 | `خمسة وأربعين` -> `[5.0]` not `[45.0]`, 14 failures |
+| Treat ordinal `التاسعة` as unmatched | sections 6/7/8 | `الساعة الثالثة` -> `[]`, 33 failures |
+| Allow a substring match inside a longer word | sections 4/11 | `واحد وعشرون` -> `[1.0, 10.0]`, 19 failures |
+| Let the clock reader waw-compound the hour | section 7 | `الساعة ثلاثة وعشرين دقيقة` -> 23:00 not 3:20 |
+| Skip the 24h conversion | section 8 | `الساعة تسعة مساءً` -> 9 not 21, 10 failures |
+| Drop the fraction guard | section 13 | `ثلاثة أرباع` -> 3.0 instead of refusing |
+| Let adjacent bare numerals merge | section 11 | `خمسة صفر اثنين` -> one match `7.0` |
+| Empty the `_NEVER` blocklist | section 11 | blocklisted words parse as numbers |
+
+All 8 caught with exit 1; reverted to 232/232 exit 0.
+
+**Two findings from doing this rather than asserting it:**
+
+1. **The `_NEVER` blocklist was decorative.** Nothing could reach it -- the
+   definite article is never stripped, so `الاثنين` (Monday) could not have
+   matched in the first place. It was untested code pretending to be a guard.
+   Fixed by testing the *mechanism*: the test injects the word into the lexicon
+   the way a future edit would, then asserts the blocklist still refuses it. Now
+   it fails when emptied.
+2. **A mutation that silently does not mutate looks exactly like an uncaught
+   one.** The first `_NEVER` mutation was `for w in () or (...)`, which is
+   truthy-fallback and changed nothing, so the harness reported "NOT CAUGHT" for
+   a test that was fine. The harness now prints `len(_NEVER)` to prove the
+   mutation took effect before trusting its verdict.
+
+### Design calls worth knowing
+
+- **Token matching, never substrings.** `ستارة` (curtain) contains `ست` (six)
+  and must not parse as 6. Every lookup is on a whole token.
+- **Under-matching beats over-matching.** A wrong number silently books the
+  wrong time and nothing downstream can detect it; a missing number at least
+  fails loudly.
+- **The lexicon is written in ordinary logical-order Arabic and normalised at
+  import by the same function used on input**, so lexicon and input cannot drift
+  apart. Zero presentation forms (U+FB50-U+FEFF) and zero bidi controls in
+  either source file -- asserted by section 17 against the files on disk.
+- **`parse_numbers` and `parse_time` deliberately disagree about waw.**
+  `ثلاثة وعشرين` is **23** as a quantity but `الساعة ثلاثة وعشرين دقيقة` is
+  **3:20**, so the clock reader takes a single hour lexeme and treats the waw
+  part as minutes.
+- **Feminine ordinals only count under the `الساعة` anchor.** `الساعة الثالثة`
+  is 3 o'clock; a bare `الثالثة` is not a number, and `الطابق الثاني` is the
+  second floor.
+
+### What it cannot do -- honest ceiling
+
+- **999,999 max for number words.** `مليون` / `مليار` are absent, so
+  `مليون درهم` yields nothing rather than something wrong. Digit runs bypass
+  this and are read straight through.
+- **Clitic prefixes ب / ل / ك / ف are not stripped**, so `بعشرة دراهم` is a
+  known miss. Deliberate: `لست` ("I am not") would otherwise strip to `ست` = 6.
+- **No fractions.** `ثلاثة أرباع` refuses rather than returning 3.
+- **No dates, no ordinal day-of-month, no phone-number grouping.** A spoken run
+  `خمسة صفر اثنين` returns three separate matches.
+- **AM/PM is never guessed.** With no period word `explicit_period` is False and
+  the hour is left exactly as spoken.
+- `ليلاً` uses a documented convention (hours 1-4 stay, 12 becomes 0, else +12).
+  That is a heuristic, not a measurement.
+- **Dialect coverage is thin and largely untested.** `ثنين`, `ثنتين`, `ونص` and
+  `الصبح` are in and tested; everything else Gulf/Levantine/Egyptian is not.
+- **Untested against real ASR output beyond the one captured sentence.** Every
+  other test string is authored. Whether `universal-3-5-pro` spells numbers the
+  way this lexicon expects across dialect, noise and long turns is unmeasured --
+  same caveat as section 7 item 1.
+- **Not wired into anything.** `call_agent/server.py` is still untouched.
