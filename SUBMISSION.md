@@ -121,7 +121,7 @@ Repo, demo and content:
 - [x] Browser-direct token path proven
 - [x] Arabic TTS with no vendor and no bill
 - [x] Web demo, driven in a real browser and screenshotted
-- [ ] Demo deployed to a URL that is up without any of our machines
+- [x] Demo deployed to a URL that is up without any of our machines: **https://arabic-voice-agent-nu.vercel.app**
 - [ ] Video recorded
 - [ ] Deck built
 - [ ] Submitted on lablab
@@ -131,7 +131,7 @@ Owner-only, cannot be done from here:
 - [ ] **AssemblyAI account via the event's credit-grant link** (`assemblyai.com/dashboard/signup?utm_campaign=lablab_virtual_hackathon`). Accept cookies during that signup or the credits do not attach. A company address such as `support@genviz.app` qualifies.
 - [ ] **Join the lablab Discord.** The rules require it separately from registering on the site.
 - [ ] **Confirm the hackathon enrolment moved off "Waiting for approval".**
-- [ ] **Decide where the demo is hosted** (see §9) and approve the deploy.
+- [x] ~~Decide where the demo is hosted and approve the deploy.~~ Done: Vercel, live.
 - [ ] Record the video, since it carries his voice and his name.
 - [ ] Press submit.
 
@@ -149,7 +149,18 @@ path are literally the same code) and worse availability (it dies when the mini
 sleeps). It is the right thing for a recorded demo and the wrong thing for a
 link a stranger clicks.
 
-**Recommended: deploy the static path to Vercel, keep the tunnel for the video.**
+**DONE 2026-09-18: deployed to Vercel, live at https://arabic-voice-agent-nu.vercel.app**
+
+Verified on production rather than from the CLI: the page returns 200, `/api/token`
+mints a real 60 second `universal-3-5-pro` token, and `/api/agent` takes a real turn
+in 0.6 ms and fills three slots from one Arabic sentence.
+
+Two things the deploy got wrong that only a live check would have caught.
+`arabic-voice-agent.vercel.app` belongs to **somebody else's application entirely**,
+so that name is a collision and was never ours; the real alias is
+`arabic-voice-agent-nu.vercel.app`. And Vercel's deployment protection was on by
+default, so every URL answered 302 and a judge would have hit a login wall. The CLI
+reported a successful deploy throughout both.
 
 ## 10. Spend
 

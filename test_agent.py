@@ -1200,6 +1200,32 @@ def t_free_text_plausibility():
        "الشارقة")
 
 
+def t_no_doubled_punctuation():
+    """A greeting plus an acknowledgement must not produce two commas.
+
+    This shipped. The live demo answered `وعليكم السلام، ، سجلت تصوير فيديو`,
+    because the greeting prepends its own separator and the acknowledgement path
+    already opens with one. Two commas and a gap, in the one language this
+    project is about, on the page a judge reads first. Caught by driving the
+    DEPLOYED api and reading the Arabic, not by any test here, which is why
+    there is now a test here.
+    """
+    for opener in ("السلام عليكم، أبغى تصوير فيديو بكرة الساعة تسعة صباحاً",
+                   "مرحبا، أبغى تصوير منتجات",
+                   "صباح الخير، أبغى مقابلة"):
+        a = BookingAgent(llm=None, today=datetime.date(2026, 9, 18))
+        a.greet()
+        txt = a.handle(opener).text
+        check(f"no doubled comma after a greeting: {opener[:18]}",
+              "، ،" not in txt and "،،" not in txt and ", ," not in txt, txt)
+        check(f"no space before a comma: {opener[:18]}",
+              " ،" not in txt.replace("، ", "X"), txt)
+        # And the greeting is still actually returned, so the fix did not
+        # silently remove the thing it was protecting.
+        check(f"greeting still returned: {opener[:18]}",
+              any(g in txt for g in ("وعليكم السلام", "مرحبتين", "صباح النور")), txt)
+
+
 TESTS = {
     "happy": t_happy,
     "plausible": t_free_text_plausibility,
@@ -1214,6 +1240,7 @@ TESTS = {
     "nollm": t_no_llm_offscript,
     "llmfence": t_llm_role_is_fenced,
     "guard": t_arabic_guard,
+    "punct": t_no_doubled_punctuation,
     "timing": t_timing,
     "state": t_state_roundtrip,
     "hostile": t_state_hostile,

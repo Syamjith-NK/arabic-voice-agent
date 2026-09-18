@@ -104,6 +104,13 @@ the parser and both serverless functions are stdlib only.
 
 ## The demo
 
+**Live: https://arabic-voice-agent-nu.vercel.app**
+
+Static files plus two stateless functions, so it is up whether or not any machine
+of ours is awake and no machine of ours is exposed. The browser holds the
+AssemblyAI socket itself with a 60 second token.
+
+
 ```sh
 python3 api_local.py            # the hosted shape, locally, on :8812
 python3 api_local.py --check    # exercise both endpoints for real, exit non-zero on failure

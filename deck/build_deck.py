@@ -791,7 +791,7 @@ def slide_10():
     panel(d, [x2, top, MR, top + 200], fill=(24, 20, 12), outline=(84, 66, 34))
     tracked(d, (x2 + 38, top + 38), "HOSTED DEMO", F("mono", 22, "Medium"),
             WARN, 5)
-    d.text((x2 + 36, top + 96), "[ URL NOT YET DECIDED ]",
+    d.text((x2 + 36, top + 96), "arabic-voice-agent-nu.vercel.app",
            font=F("mono", 32, "Medium"), fill=WARN, anchor="la", direction="ltr")
     d.text((x2 + 38, top + 148), "hosting is an open decision in SUBMISSION.md "
                                  "section 9",

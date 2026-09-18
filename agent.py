@@ -174,6 +174,7 @@ _NORM_MAP = dict(_STRIP)
 _NORM_MAP.update(_FOLD)
 _PUNCT = re.compile(r"[،؛؟!.,:\-_/\\\"'()\[\]]+")
 _WS = re.compile(r"\s+")
+_DOUBLE_COMMA = re.compile(r"،(?:\s*[،,])+")
 
 # Arabic-Indic and extended Arabic-Indic digits -> ASCII. Ten codepoints, used
 # only when `arabic_numbers` is absent. This is a character map, not a parser;
@@ -1520,9 +1521,20 @@ class BookingAgent:
         # passes through, so it cannot be forgotten on the confirm, fix or
         # off-script paths. Cleared immediately: one greeting per turn.
         if self._pending_greeting:
-            text = self._pending_greeting + "، " + text.lstrip()
+            # The body may already OPEN with punctuation, because the
+            # acknowledgement path builds its own lead-in. Joining blindly
+            # produced `وعليكم السلام، ، سجلت` on the live demo: two commas and
+            # a gap, in the one language this whole project is about. Strip any
+            # leading comma or full stop off the body before joining, and do not
+            # add a separator if the body supplies its own.
+            body = text.lstrip().lstrip("،,.").lstrip()
+            text = self._pending_greeting + "، " + body
             self._pending_greeting = None
         text = _WS.sub(" ", text).strip()
+        # Belt and braces: collapse any repeated Arabic comma that some future
+        # path reintroduces. Cheap, and the failure is embarrassing rather than
+        # subtle.
+        text = _DOUBLE_COMMA.sub("،", text)
         verify_arabic(text)                      # CONSTRAINT 3, enforced here
         dbg = dict(dbg)
         dbg["state_out"] = self._state
