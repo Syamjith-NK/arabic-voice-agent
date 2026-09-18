@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/token.py": { "memory": 256, "maxDuration": 15 },
+    "api/agent.py": {
+      "memory": 256,
+      "maxDuration": 15,
+      "includeFiles": "{agent,arabic_numbers}.py"
+    }
+  },
+  "outputDirectory": "web",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    }
+  ]
+}
