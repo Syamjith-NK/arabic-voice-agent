@@ -119,7 +119,7 @@ Repo, demo and content:
 - [x] Multi-turn proven on one socket
 - [x] Browser-direct token path proven
 - [x] Arabic TTS with no vendor and no bill
-- [ ] Web demo, driven in a real browser and screenshotted
+- [x] Web demo, driven in a real browser and screenshotted
 - [ ] Demo deployed to a URL that is up without any of our machines
 - [ ] Video recorded
 - [ ] Deck built

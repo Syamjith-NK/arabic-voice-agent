@@ -246,6 +246,19 @@ class Session:
         }
 
     def on_event(self, name: str, payload: dict) -> None:
+        if name == "speechstarted":
+            # UNDOCUMENTED, observed on the live service: v3 emits SpeechStarted
+            # when the caller actually begins talking. That is a better origin
+            # for stage 1 than anything computable here, because it is the
+            # service's own opinion of when speech began rather than our energy
+            # gate's guess, and the two can disagree on a quiet talker or a
+            # noisy line. Prefer it, and keep the gate as the fallback for when
+            # it does not arrive - it is undocumented, so it may simply stop.
+            self.onset_at = time.monotonic()
+            self.first_partial_at = None
+            self.awaiting_onset = False
+            self.post(type="status", state="listening", detail="speech started")
+            return
         if name == "error":
             self.post(type="status", state="error",
                       detail=str(payload.get("error") or payload))

@@ -399,7 +399,7 @@ All 8 caught with exit 1; reverted to 232/232 exit 0.
 
 ---
 
-## 11. The agent (`agent.py`), added 2026-09-18
+## 12. The agent (`agent.py`), added 2026-09-18
 
 Answers the "no conversation, no intent, no reply" gap in §8. Deterministic
 slot-filling booking agent for a UAE photo/video studio. Stdlib only, no new
@@ -556,3 +556,173 @@ the mutated code does before believing its verdict.
 - **No multi-booking, no cancel, no reschedule** - one booking per conversation.
 - The escalation path (a slot given up after 3 tries) marks the field "to be
   confirmed later" and **relies on a human who does not exist yet**.
+
+---
+
+## 13. Answered since §7, all measured 2026-09-18
+
+§7 listed six things as unverified. Four of them now have answers, and two of
+those changed the architecture rather than merely confirming it.
+
+### 13.1 Multi-turn: one socket carries a conversation
+
+§7 item 2 said multi-turn behaviour was untested, and the answer mattered more
+than it looked. Billing is per socket-second and the free tier caps **new**
+connections at 5 per minute, so a socket-per-turn design would rate-limit
+itself after five exchanges and would start each turn with no memory of the
+audio before it.
+
+`multiturn_probe.py`, live: two utterances separated by 1.5 s of real-time
+silence, on one socket.
+
+```
+  [end_of_turn] order=0  هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟
+  [end_of_turn] order=1  هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟
+  [termination] {'audio_duration_seconds': 12, 'session_duration_seconds': 13}
+
+  committed turns 2   turn_order [0, 1]   reconnects 0   errors none
+```
+
+**A conversation is one connection.** Note also what the `Termination` frame
+carries: `session_duration_seconds`. §7 item 4 says no endpoint exposes usage,
+and that is still true of the REST API, but the socket does report its own
+billable duration on the way out. That is the only usage signal found so far.
+
+### 13.2 A browser can hold the socket, and that decides the hosting
+
+A browser cannot set an `Authorization` header on a WebSocket. That one
+limitation is what makes the whole architecture question interesting, and it
+has a clean answer:
+
+```
+GET https://streaming.assemblyai.com/v3/token?expires_in_seconds=60
+    Authorization: <raw key>              # no Bearer, same as the socket
+-> 200 {"token": "...", "expires_in_seconds": 60}
+
+wss://streaming.assemblyai.com/v3/ws?...&token=<token>     # NO Authorization header
+-> Begin, configuration.model = universal-3-5-pro
+```
+
+The parameter is `expires_in_seconds` exactly. `expires_in` returns **422**.
+
+**Consequence: the demo needs no long-lived server.** Static files plus two
+stateless functions, so the URL is up whether or not any machine here is awake,
+and no machine of ours is exposed. The conversation state round-trips through
+the client, which is why `load_state` has to treat its input as hostile.
+
+The mint is public and cannot be made otherwise, because a secret shipped to a
+browser is not a secret. TTL and rate limiting are speed bumps and are labelled
+as such; the account spend cap is the only real bound.
+
+### 13.3 `SpeechStarted` exists and is not in the docs
+
+The live socket emits a `SpeechStarted` event when the caller begins talking.
+It is not in the documentation and was found by handling unknown message types
+gracefully rather than ignoring them.
+
+It is a better origin for stage 1 than anything computable locally, because it
+is the service's own opinion of when speech began rather than our energy gate's
+guess, and the two can disagree on a quiet talker or a noisy line. `server.py`
+prefers it and keeps the gate as a fallback, precisely because an undocumented
+event may simply stop arriving.
+
+### 13.4 The wire format is not one thing, and the byte arithmetic bites
+
+The phone line is 8 kHz mu-law at **8 bytes per millisecond**. A browser
+microphone is 16 kHz PCM16 at **32**. The chunk aggregator counts bytes, so
+reusing the phone line's constant buffers 25 ms while believing it buffered
+100, which is under the 50 ms floor from CONSTRAINT 1 and closes the socket
+with 3007. Both the byte rate and the silence-pad byte are now parameters;
+`t_wire_formats` guards it and the guard is mutation-checked.
+
+---
+
+## 14. Stage 3 is no longer a stub
+
+§8 said stage 3 could not be measured because Fish Audio returns 402 and the
+wallet reads zero. That is still true of Fish. It is no longer true of stage 3.
+
+macOS ships an Arabic voice, `Majed` (`ar_001`). Measured, 3 runs per line:
+
+| speech produced | render, median |
+|---|---|
+| 546 ms | 421 ms |
+| 2,659 ms | 423 ms |
+| 7,609 ms | 450 ms |
+| 14,928 ms | 483 ms |
+
+**The shape of that table is the finding, and it is not what I expected.** `say`
+does not stream, so the obvious reading is that a long reply pays a long render
+before a word is heard. It does not: 27x the speech length costs 62 ms, because
+the cost is process startup, not synthesis. `tts_say.py` recorded the wrong
+prediction in its own docstring rather than deleting it.
+
+So the comparison against a streaming vendor reverses: Fish's measured 380 ms
+to FIRST byte versus 420-480 ms for the COMPLETE utterance. The free offline
+voice wins for any reply longer than about half a second of speech, and only
+loses on the shortest possible acknowledgement.
+
+Wired into `latency.py --real-answer`, the whole answer side becomes real:
+
+```
+  endpoint lag (caller stops -> ASR commits)    575 - 775 ms
+  LLM + TTS    (commit -> answer exists)        474 - 586 ms
+```
+
+**That second number is the one this repo has carried as 3,878-16,917 ms and
+called the entire remaining problem.** It is now about half a second, so end of
+speech to a spoken Arabic answer is roughly 1.05 to 1.36 s. Not a faster model:
+no model. The rules path answers in 0.018 ms median and the voice is flat.
+
+One label correction, stated rather than buried: the field is
+`first_tts_byte_at`, and what is stamped is COMPLETE audio because `say` does
+not stream. Harder bar, so pessimistic rather than flattering, but a different
+quantity and not comparable to a vendor's first-byte figure without saying so.
+
+What this does NOT fix: voice quality. `Majed` is a system voice, intelligible
+and not warm, and no measurement here defends it.
+
+---
+
+## 15. Parser and API together, which had never been tested
+
+CONSTRAINT 2 was measured on **one** sentence. `arabic_numbers.py`'s 232 checks
+are **authored** strings. Verified separately is not verified together, so
+`number_e2e.py` synthesises twelve utterances with known ground truth, streams
+each to the live socket, and asks whether the parser recovers what was spoken.
+
+**12 of 12 values recovered. 7 of 12 transcripts verbatim.**
+
+The gap is the useful part. What the service actually returned:
+
+| asked | heard |
+|---|---|
+| `إلا ربعاً` | `إلا ربع` |
+| `والربع` | `وربع` |
+| `خمسمئة` | `خمسمائة` |
+| `وأربعين` | `واربعين` (no hamza) |
+| `الاستوديو` | `الستوديو` |
+
+Real orthographic variation, and the value came out right through all of it. A
+parser written against the single captured spelling would have looked perfect
+on the fixture and failed here. The agent's dialect keyword lists were checked
+against the same classes of variation and now have tests for it.
+
+Caveat that must travel with the number: this is a **synthetic speaker on a
+clean line**, plausibly easier for an ASR model than a human. It is a floor on
+failure modes, not evidence of robustness. §7 item 1 is still open.
+
+Method note: each case opens a NEW socket and the free tier caps new
+connections at 5/minute, so the run paces itself. Without that, rate limiting
+would surface as transcription failures, which is the worst kind of wrong
+result because it looks like a finding.
+
+---
+
+## 16. Where §10 stands
+
+1. ~~Top up Fish Audio so stage 3 becomes real~~ — **not needed.** §14 solved it for free.
+2. ~~Build the Arabic number-word parser~~ — **done**, §11, and proven end to end in §15.
+3. Move barge-in off partials in `call_agent` — **still not done.** The rule is documented and tested here; `call_agent/server.py` is untouched.
+4. Multi-turn — **done**, §13.1. Mid-turn reconnect on the live service is still untested.
+5. Accuracy on genuinely human Arabic — **still open, and now the single biggest gap.** Everything measured here has been synthetic or captured-synthetic audio.
