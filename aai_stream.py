@@ -125,6 +125,21 @@ DEFAULT_CHUNK_MS = 100      # our choice: safely inside the floor, still low lat
 BYTES_PER_MS = 8            # 8000 bytes/sec / 1000
 MULAW_SILENCE = 0xFF        # mu-law encoding of amplitude zero
 
+# The browser demo feeds a different wire format from the phone line, and the
+# chunk arithmetic above is NOT format-agnostic: it is bytes, and bytes per
+# millisecond depends on both the rate and the sample width.
+#
+#   8 kHz mu-law    1 byte/sample  ->  8 bytes/ms   (a phone line)
+#   16 kHz PCM16    2 bytes/sample -> 32 bytes/ms   (a browser microphone)
+#
+# Getting this wrong is not a rounding error. Buffering to `chunk_ms * 8` bytes
+# on a 16 kHz PCM16 stream sends 25 ms of audio while believing it sent 100,
+# which is under the service's 50 ms floor and closes the socket with 3007.
+# So the byte rate is a parameter, defaulted to the phone line it was written for.
+PCM16_BYTES_PER_MS_16K = 32
+PCM16_SILENCE = 0x00        # PCM16 zero amplitude; 0xFF padding here would be -1,
+                            # nearly silent but not silent, and wrong on principle
+
 # Error codes that are deterministic: retrying the same audio produces the same
 # failure. Reconnecting on these burns connections against the 5/min cap and
 # spends money to fail identically, so they are treated as fatal.
@@ -282,6 +297,8 @@ class AAIStream:
         insecure: bool = False,
         auto_load_key: bool = True,
         chunk_ms: int = DEFAULT_CHUNK_MS,
+        bytes_per_ms: int = BYTES_PER_MS,
+        pad_byte: int = MULAW_SILENCE,
     ):
         self.language = language
         self.on_turn = on_turn
@@ -340,8 +357,13 @@ class AAIStream:
                 f"API on 2026-09-17: a 20 ms Twilio frame is rejected with "
                 f"error_code 3007 and the socket is closed."
             )
-        self.chunk_bytes = chunk_ms * BYTES_PER_MS
-        self.min_chunk_bytes = MIN_CHUNK_MS * BYTES_PER_MS
+        if bytes_per_ms <= 0:
+            raise ValueError(f"bytes_per_ms={bytes_per_ms} must be positive")
+        self.bytes_per_ms = bytes_per_ms
+        self.pad_byte = pad_byte
+        self.chunk_ms = chunk_ms
+        self.chunk_bytes = chunk_ms * bytes_per_ms
+        self.min_chunk_bytes = MIN_CHUNK_MS * bytes_per_ms
         self._buf = bytearray()
         self.chunks_sent = 0
         self.fatal_error: str | None = None
@@ -478,7 +500,7 @@ class AAIStream:
         chunk = bytes(self._buf)
         self._buf.clear()
         if len(chunk) < self.min_chunk_bytes:
-            chunk += bytes([MULAW_SILENCE]) * (self.min_chunk_bytes - len(chunk))
+            chunk += bytes([self.pad_byte]) * (self.min_chunk_bytes - len(chunk))
         await self._send_chunk(chunk)
 
     async def feed_twilio_media(self, message: dict) -> None:

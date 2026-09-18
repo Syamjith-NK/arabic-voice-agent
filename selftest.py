@@ -617,8 +617,52 @@ async def t_latency():
 
 # ---------------------------------------------------------------------------
 
+async def t_wire_formats() -> None:
+    """The browser demo feeds 16 kHz PCM16, the phone line feeds 8 kHz mu-law.
+
+    The aggregator counts BYTES. Bytes per millisecond is 8 on one and 32 on the
+    other, so a byte count that is a correct 100 ms chunk on the phone line is a
+    25 ms chunk in the browser - under the service's measured 50 ms floor, which
+    closes the socket with error_code 3007. This is the guard that stops the
+    phone line's constant leaking into the browser path.
+    """
+    phone = aai_stream.AAIStream(url="ws://127.0.0.1:1/x", chunk_ms=100,
+                                 auto_load_key=False)
+    check("phone line: 100 ms of 8 kHz mu-law is 800 bytes",
+          phone.chunk_bytes == 800, str(phone.chunk_bytes))
+
+    browser = aai_stream.AAIStream(
+        url="ws://127.0.0.1:1/x", chunk_ms=100, auto_load_key=False,
+        bytes_per_ms=aai_stream.PCM16_BYTES_PER_MS_16K,
+        pad_byte=aai_stream.PCM16_SILENCE,
+    )
+    check("browser: 100 ms of 16 kHz PCM16 is 3200 bytes",
+          browser.chunk_bytes == 3200, str(browser.chunk_bytes))
+    check("browser floor is 50 ms = 1600 bytes, not the phone line's 400",
+          browser.min_chunk_bytes == 1600, str(browser.min_chunk_bytes))
+
+    # The failure this exists to catch, stated as arithmetic: if the browser
+    # path used the phone line's byte rate, its "100 ms" chunk would really be
+    # 800 / 32 = 25 ms, and the service would close the socket.
+    wrong_ms = 800 / aai_stream.PCM16_BYTES_PER_MS_16K
+    check("the mistaken chunk really is below the service floor",
+          wrong_ms < aai_stream.MIN_CHUNK_MS, f"{wrong_ms} ms")
+
+    check("silence padding differs per encoding",
+          phone.pad_byte == 0xFF and browser.pad_byte == 0x00,
+          f"{phone.pad_byte} {browser.pad_byte}")
+
+    # The URL the demo server actually asks for.
+    u = aai_stream.build_url(language="ar", sample_rate=16000, encoding="pcm_s16le")
+    check("browser URL carries 16 kHz pcm_s16le and still pins the Arabic model",
+          "sample_rate=16000" in u and "pcm_s16le" in u
+          and "universal-3-5-pro" in u and "%22ar%22" in u.replace("%5B", "[").replace("%5D", "]"),
+          u)
+
+
 TESTS = {
     "fixtures": t_fixtures,
+    "wire": t_wire_formats,
     "url": t_url_and_auth,
     "key": t_missing_key,
     "parsing": t_turn_parsing,
