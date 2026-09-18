@@ -765,6 +765,7 @@
   }
 
   function sendFrame (buffer) {
+    noteFrameLevel(new Uint8Array(buffer));
     if (!state.transport || !state.transport.sendFrame) return;
     if (buffer.byteLength !== FRAME_BYTES) {
       log('err', 'audio', 'refused a ' + buffer.byteLength + ' byte frame, expected ' +
@@ -778,8 +779,33 @@
     if (state.framesSent % 5 === 0) {
       el.endpointNote.textContent =
         state.framesSent + ' frames sent · ' + FRAME_BYTES + ' B each · ' +
-        CHUNK_MS + ' ms @ ' + (SAMPLE_RATE / 1000) + ' kHz';
+        CHUNK_MS + ' ms @ ' + (SAMPLE_RATE / 1000) + ' kHz' +
+        ' · mic ' + micLevelLabel();
     }
+  }
+
+  /* Input level, measured from the bytes ACTUALLY SENT, not from a separate
+     analyser. A meter fed by its own tap can read healthy while the thing on
+     the wire is silence, which is precisely the failure being hunted here. */
+  var micPeak = 0, micSeen = 0;
+
+  function noteFrameLevel (buf) {
+    try {
+      var v = new Int16Array(buf.buffer || buf, buf.byteOffset || 0,
+                             (buf.byteLength || buf.length) / 2);
+      var s = 0, n = v.length;
+      for (var i = 0; i < n; i++) { s += v[i] * v[i]; }
+      var rms = Math.sqrt(s / Math.max(n, 1));
+      micPeak = Math.max(micPeak * 0.85, rms);
+      micSeen++;
+    } catch (e) {}
+  }
+
+  function micLevelLabel () {
+    if (!micSeen) return 'no frames yet';
+    if (micPeak < 1) return 'SILENT (0) - check the browser mic permission';
+    var pct = Math.min(100, Math.round(micPeak / 3000 * 100));
+    return Math.round(micPeak) + ' rms (' + pct + '%)';
   }
 
   function startAudio () {
@@ -788,15 +814,61 @@
         'A microphone needs a secure origin: https, or localhost.'));
     }
 
+    /* CREATE AND RESUME THE AUDIOCONTEXT SYNCHRONOUSLY, INSIDE THE GESTURE.
+     *
+     * iOS Safari only lets an AudioContext start from a real user gesture, and
+     * it judges that by the CALL STACK, not by whether a tap happened recently.
+     * The previous version created the context inside the .then() after
+     * getUserMedia resolved, which is a fresh microtask with no gesture on the
+     * stack, so on iOS the context stays 'suspended' forever. A suspended
+     * context never pulls the graph, the worklet never runs on real audio, and
+     * the page sits there saying "listening" having captured nothing. That is
+     * consistent with what the owner saw on his phone.
+     *
+     * Desktop Chrome is lenient about this, which is exactly why it would never
+     * have shown up in any test I can run on this machine.
+     */
+    var Ctx0 = window.AudioContext || window.webkitAudioContext;
+    var gestureCtx = null;
+    try {
+      gestureCtx = new Ctx0();
+      if (gestureCtx.state === 'suspended' && gestureCtx.resume) gestureCtx.resume();
+    } catch (e) { gestureCtx = null; }
+
     return navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       video: false
     }).then(function (stream) {
 
       var Ctx = window.AudioContext || window.webkitAudioContext;
-      var ctx;
-      try { ctx = new Ctx({ sampleRate: SAMPLE_RATE }); }
-      catch (e) { ctx = new Ctx(); }
+      /* Reuse the context opened inside the gesture, or make one if that failed. */
+      /* DO NOT force the context to 16 kHz.
+       *
+       * This line used to be `new Ctx({ sampleRate: SAMPLE_RATE })`, and it is
+       * why the demo captured nothing. A MediaStreamAudioSourceNode feeds from
+       * a track that runs at the device rate, normally 48 kHz. When the
+       * AudioContext is forced to a different rate, Chrome does not resample
+       * the track into it; the node simply produces SILENCE. Everything
+       * downstream then works perfectly on nothing: the worklet runs, frames
+       * are emitted at exactly 3200 bytes, the socket accepts all of them, and
+       * AssemblyAI returns only its Begin message because it was sent sixteen
+       * seconds of digital zero.
+       *
+       * Measured against the live site with a real Arabic WAV fed in through
+       * Chrome's fake microphone: 149 frames sent, every one of them RMS 0.0,
+       * source file RMS 3510. That is what "it is not even listening" was.
+       *
+       * The context now runs at whatever the device gives, and the worklet
+       * resamples to 16 kHz, which it was already written to do.
+       */
+      var ctx = gestureCtx || new Ctx();
+
+      /* Browsers create the context suspended until a user gesture. The click
+         that got us here IS that gesture, but the resume must be asked for
+         explicitly or iOS in particular never starts pulling the graph. */
+      if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+        try { ctx.resume(); } catch (e) {}
+      }
 
       var source = ctx.createMediaStreamSource(stream);
       var sink = ctx.createGain();
