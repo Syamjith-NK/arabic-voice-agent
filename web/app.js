@@ -566,11 +566,16 @@
       u.lang  = tts.voice.lang;
       u.rate  = 1;
       u.pitch = 1;
-      u.onend = done;
+      /* Hold the microphone for the whole utterance plus a tail. onend is the
+         truthful signal, but browsers do not always fire it, so a duration
+         estimate is set up front and onend only shortens it. */
+      holdMicWhileSpeaking(900 + text.length * 85);
+      u.onend = function () { speakingUntil = Date.now() + 400; done(); };
       u.onerror = function (e) {
         var why = (e && e.error) ? e.error : 'unknown';
         log('err', 'tts', 'speech refused by the browser: ' + why +
             (why === 'not-allowed' ? ' (needs a user gesture, or there is no audio output)' : ''));
+        speakingUntil = 0;
         done();
       };
       // logged before speaking, so an immediate refusal reads in the right order
@@ -764,8 +769,52 @@
     el.chipTransport.classList.toggle('warnish', Boolean(warnish));
   }
 
+  /* HALF DUPLEX. The agent must not hear itself.
+   *
+   * This is the defect behind "the response is very bad and it's not even
+   * listening". On a phone the reply is spoken out of the SPEAKER and goes
+   * straight back into the MICROPHONE a few centimetres away. The service
+   * transcribes it, the agent treats its own greeting as the caller's turn,
+   * answers that, and the conversation spirals into the agent talking to
+   * itself. Measured end to end on this machine by routing real audio into
+   * Chrome through a virtual loopback: 20 Turn messages came back and the
+   * transcript was the agent's OWN greeting, word for word.
+   *
+   * getUserMedia's echoCancellation flag does not save you. Browser AEC is
+   * tuned for a far-end stream it can see, not for speechSynthesis played
+   * locally, and on a phone speaker at volume it has no chance.
+   *
+   * So while the agent speaks, the microphone stops going on the wire. Frames
+   * are dropped rather than the track being muted, because tearing the audio
+   * graph down and up per utterance is slow and loses the first syllable of
+   * the reply. A short tail covers the speaker ringing out and the room.
+   */
+  var speakingUntil = 0;
+
+  /* The browser itself is the authority on whether it is still speaking.
+     A duration ESTIMATE was tried first and leaked: the hold expired before a
+     long greeting finished, and the tail of the agent's own sentence came back
+     as a transcript. speechSynthesis.speaking is checked on a ticker and keeps
+     pushing the hold forward, so the estimate is only ever a floor for the gap
+     between speak() being called and the browser actually starting. */
+  function agentIsSpeaking () {
+    try {
+      if (window.speechSynthesis &&
+          (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+        speakingUntil = Math.max(speakingUntil, Date.now() + 400);
+        return true;
+      }
+    } catch (e) {}
+    return Date.now() < speakingUntil;
+  }
+
+  function holdMicWhileSpeaking (ms) {
+    speakingUntil = Math.max(speakingUntil, Date.now() + Math.max(0, ms || 0));
+  }
+
   function sendFrame (buffer) {
     noteFrameLevel(new Uint8Array(buffer));
+    if (agentIsSpeaking()) { state.framesMuted = (state.framesMuted || 0) + 1; return; }
     if (!state.transport || !state.transport.sendFrame) return;
     if (buffer.byteLength !== FRAME_BYTES) {
       log('err', 'audio', 'refused a ' + buffer.byteLength + ' byte frame, expected ' +
@@ -780,7 +829,8 @@
       el.endpointNote.textContent =
         state.framesSent + ' frames sent · ' + FRAME_BYTES + ' B each · ' +
         CHUNK_MS + ' ms @ ' + (SAMPLE_RATE / 1000) + ' kHz' +
-        ' · mic ' + micLevelLabel();
+        ' · mic ' + micLevelLabel() +
+        (state.framesMuted ? ' · ' + state.framesMuted + ' held while speaking' : '');
     }
   }
 
