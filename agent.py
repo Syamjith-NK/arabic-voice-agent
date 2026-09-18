@@ -68,6 +68,7 @@ import time
 import unicodedata
 import urllib.error
 import urllib.request
+import zlib
 from dataclasses import dataclass, field
 
 try:                                        # sibling module, another worker owns it
@@ -299,6 +300,24 @@ FIELD_WORDS = (
                   "الموبايل")),
 )
 
+# Returning a greeting is not optional politeness in the Gulf. Failing to answer
+# السلام عليكم is the single most machine-like thing an agent can do, and it is
+# orthogonal to slot filling - the return greeting is PREPENDED to whatever the
+# turn was going to say, so "السلام عليكم، أبغى تصوير فيديو" gets both.
+#
+# Matched as PHRASES (substring on the folded text) because they are multi-word
+# and unambiguous.
+_GREET_PHRASE = (
+    (_kw("صباح الخير"), "صباح النور"),
+    (_kw("مساء الخير"), "مساء النور"),
+    (_kw("السلام عليكم", "سلام عليكم"), "وعليكم السلام"),
+)
+# Matched as TOKENS. `هلا` is a substring of `اهلا` and `سهلا`, so a substring
+# test here would fire on our own "أهلاً وسهلاً" echoed back by the caller.
+_GREET_TOKEN = (
+    (_kw("مرحبا", "مرحبتين", "هلا", "هلو", "اهلين", "اهلا"), "مرحبتين"),
+)
+
 FIELD_AR = {"service": "نوع التصوير", "date": "التاريخ", "time": "الوقت",
             "location": "المكان", "name": "الاسم", "phone": "الرقم"}
 
@@ -485,6 +504,7 @@ class BookingAgent:
         self._period_pending = False
         self._ntoks = []
         self._dtoks = []
+        self._pending_greeting = None
 
     @property
     def slots(self):
@@ -656,10 +676,19 @@ class BookingAgent:
         self._dtoks = _toks(disp(raw))
         if len(self._dtoks) != len(self._ntoks):     # alignment lost, stay safe
             self._dtoks = list(self._ntoks)
+        # Greeting first, and REMOVED from the text the slot extractor sees.
+        # Otherwise "مساء الخير" hands the period detector a bare `مساء` and the
+        # agent books the shoot for 6pm because the caller said good evening.
+        self._pending_greeting, n = self._greeting_strip(n)
         dbg = {"heard": raw, "state_in": self._state, "asked": self._asked}
+        if self._pending_greeting:
+            dbg["greeting"] = self._pending_greeting
 
         if not n:
-            dbg["intent"] = "empty"
+            # Includes "السلام عليكم" on its own: the greeting was stripped, so
+            # there is nothing left to extract. It must NOT count as a failed
+            # attempt at the pending slot - the caller was being polite.
+            dbg["intent"] = "greeting" if self._pending_greeting else "empty"
             return self._reply(self._repeat_question(), t0, dbg)
 
         if self._state == "done":
@@ -693,15 +722,20 @@ class BookingAgent:
                 # LLM call.
                 dbg["intent"] = "bare_polarity"
                 return self._advance(t0, dbg)
+            if self._pending_greeting:
+                # They only said hello. Answering the greeting IS the reply; do
+                # not apologise for not understanding, and do not spend a strike.
+                dbg["intent"] = "greeting"
+                return self._advance(t0, dbg, count=False)
             return self._offscript(raw, t0, dbg)
 
         dbg["intent"] = "slots"
-        return self._advance(t0, dbg, ack=True)
+        return self._advance(t0, dbg, got=got)
 
     def _turn_confirm(self, got, polarity, n, t0, dbg):
         if got:
             dbg["intent"] = "correction_at_confirm"
-            return self._advance(t0, dbg, ack=True)
+            return self._advance(t0, dbg, got=got)
         if polarity is True:
             dbg["intent"] = "confirmed"
             self._state = "done"
@@ -731,7 +765,7 @@ class BookingAgent:
     def _turn_fix(self, got, n, t0, dbg):
         if got:
             dbg["intent"] = "fix_value"
-            return self._advance(t0, dbg, ack=True)
+            return self._advance(t0, dbg, got=got)
         fld = self._field_word(n)
         if fld:
             dbg["intent"] = "fix_field"
@@ -751,7 +785,7 @@ class BookingAgent:
 
     # -- flow ---------------------------------------------------------------
 
-    def _advance(self, t0, dbg, ack=False, prefix=""):
+    def _advance(self, t0, dbg, got=None, prefix="", count=True):
         """Ask the next missing thing, or read the whole booking back.
 
         This is also the ONE place that counts attempts. A slot we ask for and
@@ -760,13 +794,18 @@ class BookingAgent:
         single most infuriating failure mode on a phone line, and with
         `arabic_numbers` absent the time slot is genuinely unfillable.
         """
-        lead = (prefix or self._ack(ack)).strip()
+        progress = bool(got)
+        lead = prefix.strip()
         self._state = "collect"
         while True:
             pending = "time" if self._period_pending else self._next_missing()
             if pending is None:
                 self._state = "confirm"
                 self._asked = "confirm"
+                # No echo here: the readback IS the echo, and doing both reads
+                # the same booking out twice in one breath.
+                if not lead:
+                    lead = self._ack_for(got)
                 return self._reply(
                     (lead + " " + self._readback()).strip(), t0, dbg)
 
@@ -774,7 +813,7 @@ class BookingAgent:
             # "where?" with their name has not failed the location slot, they
             # have just filled a different one - counting that as a strike
             # escalated a perfectly answerable date slot in four turns.
-            if self._asked == pending and not ack:
+            if self._asked == pending and not progress and count:
                 self._bump(pending)
                 if self._attempts[pending] > MAX_ATTEMPTS:
                     self._skipped.add(pending)
@@ -787,6 +826,8 @@ class BookingAgent:
                     continue
 
             self._asked = pending
+            if not lead:
+                lead = self._echo(got)
             if self._period_pending:
                 h = self._slots["time"]["hour"] % 12 or 12
                 q = "الساعة %s صباحاً أو مساءً؟" % _HOUR_WORD[h]
@@ -815,8 +856,57 @@ class BookingAgent:
             return "تفضل، كيف أقدر أساعدك؟"
         return self._ask(nxt)
 
-    def _ack(self, on):
-        return ACKS[self._turn % len(ACKS)] if on else ""
+    def _ack_for(self, got):
+        """One acknowledgement word, chosen by CONTENT, not by a turn counter.
+
+        The old version cycled ACKS on `self._turn`, so it emitted an approving
+        word after literally every utterance, in the same order, forever. That
+        metronome is the tell - people do not say "great" six times in a row.
+
+        Two changes: it only fires when the caller actually supplied something,
+        and the word is derived from what they supplied. `crc32` rather than
+        `hash()` because hash() is salted per process, and `export_state()`
+        round-trip equality is asserted across separate agents.
+        """
+        if not got or self._pending_greeting:
+            return ""
+        key = "|".join("%s=%s" % (k, got[k]) for k in sorted(got))
+        return ACKS[zlib.crc32(key.encode("utf-8")) % len(ACKS)]
+
+    def _echo(self, got):
+        """Read back a multi-slot turn compactly: 'تمام، بكرة الساعة التاسعة صباحاً.'
+
+        Warm, but mainly FUNCTIONAL: it is the caller's first chance to catch a
+        misheard time, instead of discovering it at the final readback after
+        answering four more questions.
+        """
+        ack = self._ack_for(got)
+        if not got:
+            return ack
+        filled = [k for k in SLOT_ORDER if k in got]
+        if len(filled) < 2:
+            return ack
+        parts = []
+        for k in filled:
+            if k == "service":
+                parts.append(self._service_ar())
+            elif k == "date":
+                parts.append(self._date_ar(compact=True))
+            elif k == "time":
+                # An unresolved am/pm must not be echoed as if it were settled -
+                # we are about to ask which one it is.
+                if not self._period_pending:
+                    parts.append(self._time_ar())
+            elif k == "location":
+                parts.append("في %s" % self._slots["location"])
+            elif k == "name":
+                parts.append("باسم %s" % self._slots["name"])
+            elif k == "phone":
+                parts.append("ورقم %s" % self._slots["phone"])
+        parts = [p for p in parts if p]
+        if len(parts) < 2:
+            return ack
+        return "%s، %s." % (ack.rstrip("."), " ".join(parts))
 
     def _ask(self, slot):
         if slot == "service":
@@ -894,6 +984,19 @@ class BookingAgent:
             self._attempts[slot] += 1
 
     # -- extraction ---------------------------------------------------------
+
+    def _greeting_strip(self, n):
+        """Return (return_greeting_or_None, text with the greeting removed)."""
+        for phrases, reply in _GREET_PHRASE:
+            for p in phrases:
+                if p and p in n:
+                    return reply, _WS.sub(" ", n.replace(p, " ")).strip()
+        toks = _toks(n)
+        for words, reply in _GREET_TOKEN:
+            ws = set(words)
+            if set(toks) & ws:
+                return reply, " ".join(t for t in toks if t not in ws)
+        return None, n
 
     def _polarity(self, n):
         t = set(_toks(n))
@@ -1197,21 +1300,23 @@ class BookingAgent:
                 return disp
         return None
 
-    def _date_ar(self):
+    def _date_ar(self, compact=False):
         d = self._slots["date"]
         if not d:
             return None
-        tail = "%d %s" % (d["day"], MONTHS_AR[d["month"] - 1])
+        # The echo wants "بكرة"; the final readback wants "بكرة 19 سبتمبر",
+        # because that is where an off-by-one day has to be catchable.
+        tail = "" if compact else " %d %s" % (d["day"], MONTHS_AR[d["month"] - 1])
         kind = d["kind"]
         if kind == "today":
-            return "اليوم %s" % tail
+            return ("اليوم%s" % tail).strip()
         if kind == "tomorrow":
-            return "بكرة %s" % tail
+            return ("بكرة%s" % tail).strip()
         if kind == "day_after":
-            return "بعد بكرة %s" % tail
+            return ("بعد بكرة%s" % tail).strip()
         if kind == "weekday":
-            return "يوم %s %s" % (d["weekday"], tail)
-        return "يوم %s %s" % (d["weekday"], tail)
+            return ("يوم %s%s" % (d["weekday"], tail)).strip()
+        return ("يوم %s%s" % (d["weekday"], tail)).strip()
 
     def _time_ar(self):
         t = self._slots["time"]
@@ -1262,6 +1367,12 @@ class BookingAgent:
         return out
 
     def _reply(self, text, t0, dbg, done=False, used_llm=False):
+        # The return greeting is PREPENDED here, in the one place every reply
+        # passes through, so it cannot be forgotten on the confirm, fix or
+        # off-script paths. Cleared immediately: one greeting per turn.
+        if self._pending_greeting:
+            text = self._pending_greeting + "، " + text.lstrip()
+            self._pending_greeting = None
         text = _WS.sub(" ", text).strip()
         verify_arabic(text)                      # CONSTRAINT 3, enforced here
         dbg = dict(dbg)

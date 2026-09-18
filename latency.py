@@ -227,6 +227,44 @@ async def stub_llm_tts(transcript: str, delay_s: float) -> None:
     await asyncio.sleep(delay_s)
 
 
+def real_answer():
+    """The real answer side: the booking agent, then Arabic speech. No stub.
+
+    NOTES.md §8 recorded stage 3 as unmeasurable because the Fish Audio wallet
+    hit zero. It is measurable now, with nothing to top up: the agent is
+    deterministic and the voice is the operating system's.
+
+    ONE LABEL CORRECTION IS OWED, and it belongs here rather than in a footnote.
+    The field is called `first_tts_byte_at`, and for a streaming vendor that is
+    literally the first byte. `say` does not stream, so what is stamped here is
+    the moment the COMPLETE utterance exists. That is a strictly harder bar than
+    first-byte, so the number is pessimistic rather than flattering, which is the
+    right direction for a measurement to be wrong in - but it is not the same
+    quantity and must not be compared against a vendor's first-byte figure
+    without saying so.
+
+    Returns None if the Arabic voice is not installed, so the caller can fall
+    back rather than silently report a stage that did not happen.
+    """
+    try:
+        import agent as agent_mod
+        import tts_say
+    except ImportError:
+        return None
+    if not tts_say.available():
+        return None
+
+    bot = agent_mod.BookingAgent(llm=None)
+
+    async def answer(transcript: str) -> None:
+        reply = bot.handle(transcript)
+        # Synthesis is blocking and CPU-bound; keep it off the event loop so the
+        # timestamp reflects the work, not a starved loop.
+        await asyncio.to_thread(tts_say.speak, reply.text)
+
+    return answer
+
+
 # ---------------------------------------------------------------------------
 # Measurement
 # ---------------------------------------------------------------------------
@@ -359,6 +397,13 @@ async def _main(a) -> int:
     audio = replay.load_audio(a.audio)
     budgets: list[TurnBudget] = []
 
+    answer_fn = None
+    if getattr(a, "real_answer", False):
+        answer_fn = real_answer()
+        if answer_fn is None:
+            print("  --real-answer needs agent.py and the Majed Arabic voice; "
+                  "neither is being faked, so falling back to the stub.")
+
     if a.live:
         try:
             aai_stream.load_key()
@@ -371,8 +416,10 @@ async def _main(a) -> int:
             print(f"\n=== run {i+1}/{a.n} ===")
         if a.live:
             b = await measure(audio=audio, url=None, language=a.language,
-                              llm_stub_s=a.llm_stub, source="live+stub"
-                              if a.llm_stub is not None else "live")
+                              on_final=answer_fn,
+                              llm_stub_s=None if answer_fn else a.llm_stub,
+                              source="live+agent+say" if answer_fn else
+                              ("live+stub" if a.llm_stub is not None else "live"))
         else:
             b = await measure_replay(llm_stub_s=a.llm_stub if a.llm_stub is not None
                                      else 0.25, audio=audio)
@@ -394,6 +441,11 @@ async def _main(a) -> int:
 
     print()
     print("  Reminder: stages 1 and 2 are AssemblyAI. Stage 3 minus stage 2 is ours.")
+    if answer_fn is not None:
+        print("  Stage 3 is REAL here: the booking agent plus macOS Arabic speech.")
+        print("  But `say` does not stream, so stage 3 marks COMPLETE audio, not a")
+        print("  first byte. That is a harder bar than a streaming vendor's number,")
+        print("  so do not compare the two without saying which is which.")
     if not a.live:
         print("  These are REPLAY numbers against a local fake with a stubbed answer")
         print("  side. They verify the instrument, not the service. Nothing here has")
@@ -411,6 +463,8 @@ if __name__ == "__main__":
     ap.add_argument("--n", type=int, default=1, help="repeat N times and show the spread")
     ap.add_argument("--gap", type=float, default=13.0,
                     help="seconds between runs (free tier: 5 new connections/min)")
+    ap.add_argument("--real-answer", action="store_true",
+                    help="stage 3 from the real agent + macOS Arabic voice, not a stub")
     ap.add_argument("--llm-stub", type=float, default=None,
                     help="simulate an LLM+TTS of N seconds so stage 3 is populated")
     ap.add_argument("--json", default=None, help="write the budgets to this path")

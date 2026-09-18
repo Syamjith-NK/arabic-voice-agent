@@ -486,12 +486,66 @@ left to right lands on the right answer whether or not the text after `مو` is
 discarded. The service table is scanned in a fixed order with photo first, so
 `فيديو مو فوتوغرافي` resolves to the rejected service unless the split works.
 
+### Dialogue pass, same day
+
+Three fixes, all from reading the transcript rather than from a spec:
+
+1.  **The salaam is returned.** `السلام عليكم` -> `وعليكم السلام`, plus مرحبا ->
+    مرحبتين, صباح الخير -> صباح النور, مساء الخير -> مساء النور. It is PREPENDED
+    in `_reply()`, the single place every reply passes through, so it cannot be
+    forgotten on the confirm, fix or off-script branches, and a caller who says
+    "السلام عليكم، أبغى تصوير فيديو" gets the greeting AND the next question.
+    A greeting-only turn does not spend a slot attempt, because being polite is
+    not a failed answer.
+
+    **The trap this created, caught before it shipped: `مساء الخير` contains
+    `مساء`, which is also the evening marker.** Left in place, saying "good
+    evening" books the shoot for 6pm. The greeting is therefore STRIPPED from the
+    text before slot extraction sees it, and there is a test asserting that
+    `مساء الخير، الساعة تسعة` still asks which half of the day it is, while a
+    bare `مساءً` still resolves to 21:00.
+
+2.  **The acknowledgement is no longer a metronome.** It used to cycle
+    طيب/ممتاز/زين/تمام on `self._turn`, so it emitted an approving word after
+    every single utterance in the same order forever. Now it fires only when the
+    caller actually supplied something, and the word is derived from the extracted
+    content via `zlib.crc32` - `crc32` and not `hash()`, because `hash()` is
+    salted per process and `export_state()` round-trip equality is asserted across
+    separate agents.
+
+3.  **A turn that fills two or more slots is echoed** before the next question:
+    `تمام، بكرة الساعة التاسعة صباحاً. وين بيكون التصوير؟` This is functional as
+    much as warm - it is the caller's first chance to catch a misheard time,
+    instead of discovering it at the final readback four questions later. Skipped
+    when the next step is the readback (the readback already is the echo), and an
+    unresolved am/pm is never echoed as though it were settled.
+
+### Orthographic variation is handled by folding, and now proven
+
+`number_e2e.py` measured the live API returning real spelling variation
+(`إلا ربع` for `إلا ربعاً`, `واربعين` without the hamza). Every keyword list here
+is matched on `norm()`ed text, which folds أ/إ/آ->ا, ة->ه, ى->ي and strips
+tashkeel, and the lists themselves are normalised at import so both sides agree.
+
+That was claimed throughout the file and is now a test: مقابلة/مقابله,
+الشارقة/الشارقه, أبوظبي/ابوظبي/أبو ظبي, رأس الخيمة/راس الخيمه, الأحد/الاحد,
+الجمعة/الجمعه, غداً/غدا, صباحاً/صباحا, مساءً/مساءا, خطأ/خطا all resolve
+identically. Deleting `_NORM_MAP.update(_FOLD)` fails 15 checks.
+
+**A mutation-testing note worth keeping:** the first attempt at that mutation was
+`_FOLD = {} or {...}`, which is a NO-OP - `{}` is falsy, so the dict was
+unchanged and the mutation "survived". A mutation that does not actually mutate
+proves nothing, and it reads exactly like a gap in the tests. Sanity-check what
+the mutated code does before believing its verdict.
+
 ### Known weak or unbuilt
 
-- **The Arabic is serviceable, not warm.** It is a competent receptionist reading
-  a form: correct, Gulf-flavoured (`وين`, `زين`, `بكرة`), never idiomatic. It
-  does not small-talk, sympathise, or vary sentence shape beyond a four-item ack
-  rotation. A native speaker would clock it as a machine inside two turns.
+- **The Arabic is now decent, still not warm.** After the dialogue pass it
+  returns greetings and echoes what it heard, which moves it from "form-filling
+  robot" to "brisk receptionist". It still does not small-talk, sympathise, or
+  vary sentence SHAPE - every question is the same length and register, and the
+  four ack words are the only variation in the whole script. A native speaker
+  would still place it as a machine, just several turns later and less jarringly.
 - **The LLM clarification stacks two questions** ("ما هي الخدمات التي ترغب...؟
   أي نوع تصوير تحتاج؟"). Safe, redundant, slightly clumsy on a phone line.
 - **No availability check, no calendar, no persistence.** The agent will happily

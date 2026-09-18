@@ -84,7 +84,15 @@ def t_happy():
     check("greet names the studio", "استوديو" in g.text)
 
     r = say(ag, "السلام عليكم، أبغى أحجز تصوير فيديو", show=True)
-    eq("service captured", r.slots["service"], "video")
+    # Not optional politeness in the Gulf. Failing to return the salaam was the
+    # most machine-like thing this agent did.
+    check("the salaam is RETURNED", r.text.startswith("وعليكم السلام"), r.text)
+    check("and the greeting does not replace the turn's work",
+          "نوع تصوير" in r.text or "يوم" in r.text, r.text)
+    eq("service still captured on a greeting turn", r.slots["service"], "video")
+    check("no acknowledgement word on top of the greeting",
+          not any(a.rstrip(".") in r.text for a in ("طيب", "ممتاز", "زين")),
+          r.text)
     check("asks for the date next", "يوم" in r.text)
 
     r = say(ag, "بكرة الساعة تسعة صباحاً", show=True)
@@ -92,6 +100,12 @@ def t_happy():
     eq("hour is 9", r.slots["time"]["hour"], 9)
     check("period was explicit so no am/pm question",
           "صباحاً أو مساءً" not in r.text, r.text)
+    # Two slots in one breath: echo them before asking the next question, so a
+    # misheard time is catchable NOW rather than four questions later.
+    check("a two-slot turn is echoed back", "بكرة" in r.text
+          and "التاسعة" in r.text, r.text)
+    check("the echo comes before the next question",
+          r.text.index("التاسعة") < r.text.index("وين"), r.text)
     check("asks where", "وين" in r.text, r.text)
 
     r = say(ag, "في دبي، منطقة الخليج التجاري", show=True)
@@ -750,8 +764,219 @@ def measure_ollama():
     print("  reply: %s" % out.replace("\n", " ")[:200])
 
 
+def t_greetings():
+    """Return the greeting, and do not let a greeting act as data."""
+    for said, want in (("السلام عليكم", "وعليكم السلام"),
+                       ("سلام عليكم", "وعليكم السلام"),
+                       ("السلام عليكم ورحمة الله", "وعليكم السلام"),
+                       ("السلام عليكم ورحمة الله وبركاته", "وعليكم السلام"),
+                       ("مرحبا", "مرحبتين"),
+                       ("مرحباً", "مرحبتين"),        # hamza/tanween variant
+                       ("هلا", "مرحبتين"),
+                       ("أهلين", "مرحبتين"),
+                       ("اهلين", "مرحبتين"),
+                       ("صباح الخير", "صباح النور"),
+                       ("مساء الخير", "مساء النور")):
+        ag = new()
+        ag.greet()
+        r = ag.handle(said)
+        check("%r is answered with %r" % (said, want),
+              r.text.startswith(want), r.text[:50])
+        check("%r still leaves a question on the table" % said,
+              "؟" in r.text, r.text)
+        check("%r is not treated as off-script" % said,
+              r.debug["intent"] != "offscript", r.debug["intent"])
+
+    # Prepended to the turn's real work, not instead of it.
+    ag = new()
+    ag.greet()
+    r = ag.handle("السلام عليكم، أبغى تصوير فيديو بكرة")
+    check("greeting AND slots in one utterance",
+          r.text.startswith("وعليكم السلام")
+          and r.slots["service"] == "video"
+          and r.slots["date"]["iso"] == "2026-09-19", r.text)
+
+    # THE TRAP: "مساء الخير" contains مساء, which is also the evening marker.
+    # Without stripping the greeting before extraction the agent books 6pm
+    # because the caller said good evening.
+    if HAVE_NUMBERS:
+        ag = new()
+        ag.greet()
+        ag.handle("تصوير فيديو")
+        ag.handle("بكرة")
+        r = ag.handle("مساء الخير، الساعة تسعة")
+        check("'مساء الخير' is a greeting, NOT a pm marker",
+              r.slots["time"]["hour"] == 9
+              and r.slots["time"]["explicit_period"] is False, r.slots["time"])
+        check("so it still asks am/pm", "صباحاً أو مساءً" in r.text, r.text)
+        # and a real مساءً still works
+        r = ag.handle("مساءً")
+        eq("a genuine مساءً still resolves to pm", r.slots["time"]["hour"], 21)
+    else:
+        skip("good-evening trap", "arabic_numbers missing")
+
+    # A greeting is not a failed answer, so it must not spend an attempt.
+    ag = new()
+    ag.greet()
+    for _ in range(6):
+        r = ag.handle("السلام عليكم")
+    check("repeated greetings never escalate a slot",
+          not r.debug.get("skipped") and not r.debug.get("attempts"),
+          r.debug)
+    check("and the agent keeps asking the same real question",
+          "نوع تصوير" in r.text, r.text)
+
+    # greet() is the first thing a judge hears. It must survive all of this.
+    g = new().greet()
+    check("greet() still opens with أهلاً وسهلاً",
+          g.text.startswith("أهلاً وسهلاً، معك"), g.text)
+    check("greet() still names the studio and asks the first question",
+          "استوديو" in g.text and g.text.rstrip().endswith("؟"), g.text)
+    check("greet() is clean Arabic", verify_arabic(g.text) == g.text)
+
+
+def t_acknowledgement_is_not_a_metronome():
+    ACKS = ("تمام", "طيب", "ممتاز", "زين")
+
+    def ack_of(text):
+        for a in ACKS:
+            if text.startswith(a):
+                return a
+        return None
+
+    # 1. No new information -> no acknowledgement.
+    ag = new()
+    ag.greet()
+    r = ag.handle("بلابلابلا")
+    check("no ack when the caller supplied nothing", ack_of(r.text) is None,
+          r.text[:40])
+
+    # 2. New information -> an acknowledgement.
+    ag = new()
+    ag.greet()
+    r = ag.handle("تصوير فيديو")
+    check("an ack when the caller supplied something",
+          ack_of(r.text) is not None, r.text[:40])
+
+    # 3. It must not be a fixed rotation keyed on the turn counter. Identical
+    #    content at DIFFERENT turn numbers must give the SAME word; that is what
+    #    proves it is derived from content and not from a counter.
+    a1 = new()
+    a1.greet()
+    first = ack_of(a1.handle("تصوير فيديو").text)
+    a2 = new()
+    a2.greet()
+    a2.handle("بلابلابلا")
+    a2.handle("بلابلابلا")
+    later = ack_of(a2.handle("تصوير فيديو").text)
+    eq("same content gives the same ack regardless of turn number", later,
+       first)
+
+    # 4. Different content gives different words across a real conversation, so
+    #    it is varied and not just constant.
+    ag = new()
+    ag.greet()
+    seen = []
+    for line in ("تصوير فيديو", "بكرة", "في دبي", "اسمي خالد"):
+        a = ack_of(ag.handle(line).text)
+        if a:
+            seen.append(a)
+    check("the acks vary across a conversation", len(set(seen)) > 1, seen)
+
+    # 5. Deterministic across agents: crc32, not the salted built-in hash().
+    #    (Cross-PROCESS stability is what the state round-trip depends on; it is
+    #    asserted by construction because crc32 has no per-process seed.)
+    a3 = new()
+    a3.greet()
+    eq("ack is stable across separate agents",
+       ack_of(a3.handle("تصوير فيديو").text), first)
+
+
+def t_orthographic_variants():
+    """The ASR really does vary hamza and taa-marbuta - `number_e2e.py` measured
+    it returning `إلا ربع` for `إلا ربعاً` and `واربعين` without the hamza.
+
+    Matching is done on `norm()`ed text, which folds أ/إ/آ->ا, ة->ه, ى->ي and
+    strips tashkeel. That is claimed all over this file; this test PROVES it for
+    every keyword list the agent owns, rather than trusting the claim.
+    """
+    groups = [
+        ("service", ("مقابلة", "مقابله"), "interview"),
+        ("service", ("تصوير فوتوغرافي", "تصوير فوتوغرافى"), "photo"),
+        ("service", ("منتجات", "المنتجات"), "products"),
+    ]
+    for _kind, spellings, want in groups:
+        got = []
+        for sp in spellings:
+            ag = new()
+            ag.greet()
+            got.append(ag.handle(sp).slots["service"])
+        check("service spellings %s all give %s" % (list(spellings), want),
+              all(g == want for g in got), got)
+
+    for spellings, want in ((("الشارقة", "الشارقه"), "الشارقة"),
+                            (("أبوظبي", "ابوظبي", "أبو ظبي", "ابو ظبي"),
+                             "أبوظبي"),
+                            (("رأس الخيمة", "راس الخيمه"), "رأس الخيمة"),
+                            (("الفجيرة", "الفجيره"), "الفجيرة"),
+                            (("أم القيوين", "ام القيوين"), "أم القيوين")):
+        got = []
+        for sp in spellings:
+            ag = new()
+            ag.greet()
+            ag.handle("تصوير فيديو")
+            ag.handle("بكرة")
+            ag._slots["time"] = {"hour": 9, "minute": 0,
+                                 "explicit_period": True}
+            ag._period_pending = False
+            got.append(ag.handle(sp).slots["location"])
+        check("emirate spellings %s all give %s" % (list(spellings), want),
+              all(g == want for g in got), got)
+
+    for spellings, iso in ((("الأحد", "الاحد"), "2026-09-20"),
+                           (("الإثنين", "الاثنين"), "2026-09-21"),
+                           (("الجمعة", "الجمعه"), "2026-09-25"),
+                           (("غداً", "غدا", "بكرة", "بكره"), "2026-09-19")):
+        got = []
+        for sp in spellings:
+            ag = new()
+            ag.greet()
+            ag.handle("تصوير فيديو")
+            got.append(ag.handle(sp).slots["date"])
+        check("date spellings %s all give %s" % (list(spellings), iso),
+              all(g and g["iso"] == iso for g in got),
+              [g and g["iso"] for g in got])
+
+    for spellings, want in ((("نعم", "أيوه", "ايوه", "تمام", "صح", "زين"), True),
+                            (("لا", "لأ", "غلط", "خطأ", "خطا"), False)):
+        for sp in spellings:
+            ag = new()
+            check("polarity %r reads as %s" % (sp, want),
+                  ag._polarity(agent.norm(sp)) is want)
+
+    # Period markers, with and without tanween.
+    if HAVE_NUMBERS:
+        for spellings, hour in ((("صباحاً", "صباحا", "الصبح"), 9),
+                                (("مساءً", "مساءا", "بالليل"), 21)):
+            got = []
+            for sp in spellings:
+                ag = new()
+                ag.greet()
+                ag.handle("تصوير فيديو")
+                ag.handle("بكرة")
+                ag.handle("الساعة تسعة")
+                got.append(ag.handle(sp).slots["time"]["hour"])
+            check("period spellings %s all give %d" % (list(spellings), hour),
+                  all(g == hour for g in got), got)
+    else:
+        skip("period spellings", "arabic_numbers missing")
+
+
 TESTS = {
     "happy": t_happy,
+    "greetings": t_greetings,
+    "acks": t_acknowledgement_is_not_a_metronome,
+    "spelling": t_orthographic_variants,
     "outoforder": t_out_of_order,
     "correction": t_correction_midflow,
     "noatconfirm": t_no_at_confirmation,

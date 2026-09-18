@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Arabic Voice Agent - AssemblyAI v3 streaming</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230a0c0f'/><rect x='4' y='4' width='2' height='8' fill='%234fd6b8'/><rect x='7.5' y='2' width='2' height='12' fill='%234fd6b8'/><rect x='11' y='5' width='2' height='6' fill='%234fd6b8'/></svg>">
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ─────────────────────────  header  ───────────────────────── -->
+  <header class="head">
+    <div class="head-id">
+      <div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="head-txt">
+        <h1>Arabic realtime voice agent</h1>
+        <p class="sub">AssemblyAI v3 streaming socket <span class="dot-sep"></span> <code>universal-3-5-pro</code> <span class="dot-sep"></span> 16&nbsp;kHz PCM s16le, 100&nbsp;ms frames</p>
+      </div>
+    </div>
+
+    <div class="head-state">
+      <div class="pill" id="statusPill" data-state="idle">
+        <span class="pill-dot"></span>
+        <span class="pill-txt" id="statusText">idle</span>
+      </div>
+      <div class="chips">
+        <span class="chip" id="chipMode" title="Which transport is connected">mode <b>-</b></span>
+        <span class="chip" id="chipTransport" title="Which audio capture path is live">capture <b>-</b></span>
+        <span class="chip" id="chipVoice" title="Which speechSynthesis voice speaks the Arabic reply">voice <b>-</b></span>
+      </div>
+    </div>
+  </header>
+
+  <p class="status-detail" id="statusDetail">Not connected.</p>
+
+  <!-- ─────────────────────────  mock banner  ───────────────────────── -->
+  <div class="banner" id="mockBanner" hidden>
+    <span class="banner-tag">MOCK</span>
+    <span class="banner-body">
+      No server, no API key, no microphone. <b>Turn 0 is the real captured session</b> in
+      <code>fixtures/v3_session_arabic.jsonl</code>, revision included, and its first two stage timings
+      are the measured live figures from <code>NOTES.md</code> &sect;3. Every agent reply and slot payload
+      below was <b>captured from this repo's own <code>/api/agent</code></b>. Turn 1 is a scripted
+      continuation, and the invented timings are the only numbers here that are not measured, so they
+      are marked <b>sim</b>.
+    </span>
+  </div>
+
+  <div class="banner" id="directBanner" hidden>
+    <span class="banner-tag">DIRECT</span>
+    <span class="banner-body">
+      <b>This browser holds the AssemblyAI socket itself.</b> <code>/api/token</code> mints a 60 second
+      streaming token, the page opens <code>wss://streaming.assemblyai.com/v3/ws</code> with no
+      <code>Authorization</code> header (a browser cannot set one, which is the whole reason the token
+      exists), and each committed turn is POSTed to <code>/api/agent</code>. There is no websocket server
+      anywhere, so every number on this page is measured in your browser, not simulated.
+    </span>
+  </div>
+
+  <!-- ─────────────────────────  controls  ───────────────────────── -->
+  <div class="controls">
+    <button class="btn btn-primary" id="btnStart">Start microphone</button>
+    <button class="btn" id="btnStop" disabled>Stop</button>
+    <button class="btn" id="btnReset" disabled>Reset turn</button>
+    <span class="controls-note" id="endpointNote"></span>
+  </div>
+
+  <!-- ─────────────────────────  latency strip  ───────────────────────── -->
+  <section class="panel strip-panel">
+    <div class="panel-head">
+      <h2>Turn budget</h2>
+      <span class="panel-note">three stages, measured separately, never blended into one number</span>
+    </div>
+
+    <div class="strip" id="strip">
+      <div class="stage" id="stageA">
+        <div class="stage-k">time to first partial</div>
+        <div class="stage-v"><span class="num" id="latA">-</span><span class="unit">ms</span></div>
+        <div class="stage-f">from start of turn <span class="sim" hidden>sim</span></div>
+        <div class="stage-bar"><i style="width:0%"></i></div>
+      </div>
+      <div class="stage" id="stageB">
+        <div class="stage-k">time to end of turn</div>
+        <div class="stage-v"><span class="num" id="latB">-</span><span class="unit">ms</span></div>
+        <div class="stage-f">from start of turn <span class="sim" hidden>sim</span></div>
+        <div class="stage-bar"><i style="width:0%"></i></div>
+      </div>
+      <div class="stage" id="stageC">
+        <div class="stage-k">time to reply</div>
+        <div class="stage-v"><span class="num" id="latC">-</span><span class="unit">ms</span></div>
+        <div class="stage-f">after end of turn <span class="sim" hidden>sim</span></div>
+        <div class="stage-bar"><i style="width:0%"></i></div>
+      </div>
+    </div>
+
+    <table class="hist" id="histTable" hidden>
+      <thead>
+        <tr><th>turn</th><th>first partial</th><th>end of turn</th><th>reply</th></tr>
+      </thead>
+      <tbody id="histBody"></tbody>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────  body  ───────────────────────── -->
+  <div class="body">
+
+   <div class="col col-left">
+
+    <!-- conversation -->
+    <section class="panel conv-panel">
+      <div class="panel-head">
+        <h2>Conversation</h2>
+        <span class="panel-note">logical Arabic, shaped by the browser. Nothing is pre-shaped or reversed in JS.</span>
+      </div>
+
+      <!-- the inner wrapper is what allows the turns to sit at the bottom
+           without the scroll container clipping anything above them -->
+      <div class="conv" id="convScroll">
+        <div class="conv-inner" id="conv">
+          <div class="empty" id="convEmpty">Waiting for the first turn.</div>
+        </div>
+      </div>
+
+      <div class="live" id="live" hidden>
+        <div class="live-k">live partial <span class="live-caution">unstable</span></div>
+        <div class="live-txt" id="liveTxt" lang="ar" dir="rtl"></div>
+      </div>
+    </section>
+
+
+    <!-- (b) numbers: sits beside the conversation it was parsed from -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Numbers arrive as Arabic words</h2>
+        <span class="panel-note">a digit regex finds nothing in this transcript</span>
+      </div>
+      <div class="slots">
+        <div class="slots-raw">
+          <div class="mini-k" id="rawFinalKey">raw final transcript</div>
+          <div class="raw-txt" id="rawFinal" lang="ar" dir="rtl">-</div>
+        </div>
+        <div class="slots-parsed">
+          <div class="mini-k">parsed slots</div>
+          <table class="slot-table"><tbody id="slotBody">
+            <tr class="slot-empty"><td colspan="2">Nothing parsed yet.</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </section>
+
+   </div>
+
+    <!-- instrument column -->
+    <div class="col">
+
+      <!-- (a) partial revision -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Partial revision</h2>
+          <span class="panel-note">partials are revised, not extended. A word already shown can be withdrawn.</span>
+          <span class="rev-count" id="revCount" hidden></span>
+        </div>
+        <div class="partials" id="partials">
+          <div class="empty">No partials yet.</div>
+        </div>
+        <p class="panel-foot">
+          Acting on a partial means acting on text the service may disown, and there is no retraction event.
+          Safe rule: act on <code>end_of_turn</code>.
+        </p>
+      </section>
+
+
+      <!-- event log -->
+      <section class="panel log-panel">
+        <div class="panel-head">
+          <h2>Event log</h2>
+          <span class="panel-note">every frame the socket delivered</span>
+        </div>
+        <div class="log" id="log"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>AssemblyAI Voice Agent Hackathon</span>
+    <span class="dot-sep"></span>
+    <span>The Arabic here is <b>input</b>. AssemblyAI has no Arabic output voice, so the reply is spoken by the browser.</span>
+  </footer>
+
+</div>
+
+<script src="mock.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
