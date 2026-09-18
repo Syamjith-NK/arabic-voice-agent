@@ -972,8 +972,128 @@ def t_orthographic_variants():
         skip("period spellings", "arabic_numbers missing")
 
 
+def t_reask_is_rephrased():
+    """Asking the identical question twice reads as a crash, even when correct.
+
+    This is the defect a judge saw in the demo: the greeting lists the four
+    service options, the caller answers with a TIME, and the agent replies by
+    reading the identical four-option menu back word for word.
+    """
+    # The exact demo sequence.
+    ag = new()
+    g = ag.greet()
+    print()
+    print("    ---- the demo sequence ----")
+    print("    AGENT  : %s" % g.text)
+    r = say(ag, "هل يمكنكم تأجيل التصوير إلى الساعة تسعة صباحاً؟", show=True)
+    print("    ---- end ----")
+    check("the re-ask is NOT the greeting's question repeated",
+          _ask_part(r.text) != _ask_part(g.text), r.text)
+    check("the re-ask drops the option list", "فوتوغرافي" not in r.text, r.text)
+    check("it still asks for the service", "نوع تصوير" in r.text, r.text)
+    if HAVE_NUMBERS:
+        check("and it names what it DID understand",
+              "سجلت" in r.text and "التاسعة" in r.text, r.text)
+        eq("the time really was captured", r.slots["time"]["hour"], 9)
+    else:
+        skip("re-ask echo of the time", "arabic_numbers missing")
+
+    # General rule, every slot: ask N and ask N+1 are never byte-identical.
+    setups = [("service", []),
+              ("date", ["تصوير فيديو"]),
+              ("time", ["تصوير فيديو", "بكرة"])]
+    for slot, pre in setups:
+        if slot == "time" and not HAVE_NUMBERS:
+            continue
+        ag = new()
+        ag.greet()
+        for p in pre:
+            ag.handle(p)
+        outs = [_ask_part(ag.handle("مممم").text) for _ in range(3)]
+        check("%s: consecutive asks are never byte-identical" % slot,
+              outs[0] != outs[1], outs[:2])
+        check("%s: at least 2 distinct phrasings before escalation" % slot,
+              len(set(outs)) >= 2, outs)
+
+    # The FIRST ask must still carry the option list - that is the whole reason
+    # the short form is allowed to drop it.
+    g = new().greet()
+    for opt in ("فوتوغرافي", "فيديو", "مقابلة", "تصوير منتجات"):
+        check("the first ask lists %s" % opt, opt in g.text, g.text)
+
+    # Third ask brings the list back, because by then they may not have heard it.
+    ag = new()
+    ag.greet()
+    ag.handle("مممم")
+    third = ag.handle("مممم").text
+    check("the third ask offers the options again",
+          "فوتوغرافي" in third and "مقابلة" in third, third)
+
+    # It must still terminate rather than rephrase forever.
+    ag = new()
+    ag.greet()
+    last = None
+    for _ in range(5):
+        last = ag.handle("مممم")
+    check("rephrasing does not prevent escalation",
+          "service" in last.debug.get("skipped", []), last.debug)
+
+
+def _ask_part(text):
+    """The question at the end of a reply, without the acknowledgement lead."""
+    return text.split(". ")[-1].strip()
+
+
+def t_ask_count_is_conversation_state():
+    """The phrasing index must live in exported state, or a stateless demo
+    resets to the first phrasing on every turn and repeats itself forever."""
+    ag = new()
+    ag.greet()
+    st = ag.export_state()
+    check("ask_count is exported", "ask_count" in st, list(st))
+    eq("greet() counts as ask one for the service slot",
+       st["ask_count"].get("service"), 1)
+
+    # Round-trip: a resumed agent must produce the SAME re-ask, not the first one.
+    a = new()
+    a.greet()
+    ra = a.handle("مممم")
+    b = new()
+    b.greet()
+    blob = json.dumps(b.export_state(), ensure_ascii=False)
+    fresh = BookingAgent()
+    fresh.load_state(json.loads(blob))
+    rb = fresh.handle("مممم")
+    eq("a resumed agent gives the same re-ask", rb.text, ra.text)
+    check("and it is the SHORT form, not the greeting's menu",
+          "فوتوغرافي" not in rb.text, rb.text)
+
+    # Answering a slot resets its counter, so a later correction asks afresh.
+    ag = new()
+    ag.greet()
+    ag.handle("مممم")
+    ag.handle("تصوير فيديو")
+    eq("answering resets the slot's ask count",
+       ag.export_state()["ask_count"].get("service"), 0)
+
+    # Old or hostile states must not break it.
+    for st in ({}, {"ask_count": "no"}, {"ask_count": {"service": -1}},
+               {"ask_count": {"service": 10 ** 9}},
+               {"ask_count": {"nope": 2}}, {"ask_count": {"service": True}}):
+        a2 = BookingAgent()
+        try:
+            a2.load_state(st)
+            r = a2.handle("تصوير فيديو")
+            check("ask_count survives %r" % (str(st)[:34],),
+                  isinstance(r, Reply) and bool(r.text))
+        except Exception as e:                                   # noqa: BLE001
+            check("ask_count survives %r" % (str(st)[:34],), False, repr(e))
+
+
 TESTS = {
     "happy": t_happy,
+    "reask": t_reask_is_rephrased,
+    "askcount": t_ask_count_is_conversation_state,
     "greetings": t_greetings,
     "acks": t_acknowledgement_is_not_a_metronome,
     "spelling": t_orthographic_variants,

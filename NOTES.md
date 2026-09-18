@@ -520,6 +520,41 @@ Three fixes, all from reading the transcript rather than from a spec:
     when the next step is the readback (the readback already is the echo), and an
     unresolved am/pm is never echoed as though it were settled.
 
+### Never ask the same question twice in the same words
+
+Found by watching the demo, not by reading a test. The greeting lists the four
+service options; the caller answered with a TIME; the agent replied by reading
+the identical four-option menu back word for word. Logically correct - no service
+was given, so re-asking is right - and it reads as a crash.
+
+Fixed as a general rule, not a special case for that pair. Every slot has three
+phrasings indexed by how many times it has already been asked: **[0] full, with
+the option list · [1] short, list dropped because it was already read out ·
+[2] list offered again**, since by the third time the caller may genuinely not
+have heard it. A re-ask also always names what WAS understood, because that is
+the reassuring part and it is the one thing the agent got right:
+
+```
+before:  طيب. أي نوع تصوير تحتاج؟ فوتوغرافي، فيديو، مقابلة، أو تصوير منتجات؟
+after:   ممتاز، سجلت الساعة التاسعة صباحاً. بس أي نوع تصوير بالضبط؟
+```
+
+**The subtlety that would have silently defeated it: `greet()` asks for the
+service AND lists the options, so it is ask number one.** A counter that only
+starts at `handle()` treats the first re-ask as a first ask and repeats the menu
+verbatim - exactly the bug. `greet()` therefore sets `_ask_count["service"] = 1`,
+and there is a mutation proving the tests catch its removal.
+
+`_ask_count` is conversation state, so it is exported and validated like
+everything else. Without that, a stateless serverless demo resets to phrasing [0]
+on every turn and repeats itself forever - also mutation-tested. Answering a slot
+resets its counter, so a later correction asks afresh rather than in the clipped
+re-ask voice. Silence (an empty transcript) does NOT advance the counter; a
+caller who said nothing has not been asked twice.
+
+Escalation still terminates the loop: the phrasings vary, then after
+`MAX_ATTEMPTS` the slot is handed to a human.
+
 ### Orthographic variation is handled by folding, and now proven
 
 `number_e2e.py` measured the live API returning real spelling variation
@@ -548,6 +583,12 @@ the mutated code does before believing its verdict.
   would still place it as a machine, just several turns later and less jarringly.
 - **The LLM clarification stacks two questions** ("ما هي الخدمات التي ترغب...؟
   أي نوع تصوير تحتاج؟"). Safe, redundant, slightly clumsy on a phone line.
+- **Free-text slots accept anything.** With `location` or `name` pending, a
+  filler noise like `مممم` is stored as the location. Visible in the demo if a
+  judge mumbles. The structured slots (service, date, time, phone) are immune
+  because they must match a pattern; the two free-text ones cannot be, without a
+  plausibility check that does not exist yet. This is the most demo-visible
+  defect still open.
 - **No availability check, no calendar, no persistence.** The agent will happily
   confirm a slot that is already booked; `done: true` writes nothing anywhere.
 - **Dialect coverage is a keyword list**, tested against phrasing I wrote myself.

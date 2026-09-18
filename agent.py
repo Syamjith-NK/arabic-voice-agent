@@ -334,6 +334,53 @@ _HOUR_WORD = ("الثانية عشرة", "الواحدة", "الثانية", "ا
 
 ACKS = ("تمام.", "طيب.", "ممتاز.", "زين.")
 
+# Asking the SAME question twice word for word reads as a crash, even when it is
+# logically correct. A person who has just been asked something and answered
+# something else does not get read the identical menu again.
+#
+# So every slot has three phrasings, indexed by how many times we have already
+# asked for it:
+#   [0] first ask  - full, with the option list
+#   [1] re-ask     - short, no list, because the list was already given
+#   [2] third+     - the list again, since by now they may genuinely not have
+#                    heard it the first time
+#
+# `greet()` asks for the service AND lists the options, so it counts as ask
+# number one. If the counter only started at handle(), the first re-ask would be
+# treated as a first ask and would repeat verbatim - which is the exact bug.
+_ASKS = {
+    "service": (
+        "أي نوع تصوير تحتاج؟ فوتوغرافي، فيديو، مقابلة، أو تصوير منتجات؟",
+        "بس أي نوع تصوير بالضبط؟",
+        "نعيدها: فوتوغرافي، فيديو، مقابلة، أو تصوير منتجات؟",
+    ),
+    "date": (
+        "في أي يوم تحب نحجز التصوير؟",
+        "بس ما حددت اليوم، أي يوم يناسبك؟",
+        "أي يوم؟ اليوم، بكرة، أو يوم معين في الأسبوع؟",
+    ),
+    "time": (
+        "وأي ساعة تناسبك؟",
+        "بس أي ساعة بالضبط؟",
+        "أي ساعة؟ مثلاً الساعة تسعة صباحاً؟",
+    ),
+    "location": (
+        "وين بيكون التصوير؟",
+        "بس وين بالضبط؟",
+        "في أي إمارة أو منطقة بيكون التصوير؟",
+    ),
+    "name": (
+        "ممكن اسمك الكريم؟",
+        "بس ما أخذت اسمك، ممكن تعيده؟",
+        "ممكن تقول اسمك مرة ثانية؟",
+    ),
+    "phone": (
+        "وآخر شي، ممكن رقم تواصل؟",
+        "بس ما وضح الرقم، ممكن تعيده؟",
+        "ممكن رقم الموبايل؟ ببطء لو سمحت.",
+    ),
+}
+
 # How many times we will re-ask one slot before handing it to a human. A voice
 # agent that loops forever on a slot it cannot parse is worse than one that
 # admits it and moves on.
@@ -505,6 +552,7 @@ class BookingAgent:
         self._ntoks = []
         self._dtoks = []
         self._pending_greeting = None
+        self._ask_count = {}
 
     @property
     def slots(self):
@@ -538,6 +586,7 @@ class BookingAgent:
             "skipped": sorted(self._skipped),
             "turn": self._turn,
             "period_pending": self._period_pending,
+            "ask_count": dict(self._ask_count),
             "today": (self._today.isoformat() if self._today else None),
         }
 
@@ -590,6 +639,13 @@ class BookingAgent:
                 if isinstance(v, int) and not isinstance(v, bool) \
                         and 0 <= v <= MAX_ATTEMPTS:
                     self._attempts[k] = v
+
+        ac = state.get("ask_count")
+        if isinstance(ac, dict):
+            for k in SLOT_ORDER:
+                v = ac.get(k)
+                if isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 99:
+                    self._ask_count[k] = v
 
         sk = state.get("skipped")
         if isinstance(sk, (list, tuple)):
@@ -649,9 +705,12 @@ class BookingAgent:
         t0 = time.perf_counter()
         self._state = "collect"
         self._asked = "service"
-        text = ("أهلاً وسهلاً، معك %s للتصوير. "
-                "أي نوع تصوير تحتاج؟ فوتوغرافي، فيديو، مقابلة، أو تصوير منتجات؟"
-                % self._studio)
+        # The greeting LISTS THE OPTIONS, so it is ask number one for `service`.
+        # Without this the first re-ask reads as a first ask and repeats the
+        # whole menu word for word, which is what made it look broken.
+        self._ask_count["service"] = 1
+        text = ("أهلاً وسهلاً، معك %s للتصوير. %s"
+                % (self._studio, _ASKS["service"][0]))
         return self._reply(text, t0, {"intent": "greet", "extracted": {}})
 
     def handle_turn(self, turn):
@@ -772,6 +831,7 @@ class BookingAgent:
             dbg["field"] = fld
             self._slots[fld] = None
             self._attempts[fld] = 0
+            self._ask_count[fld] = 0
             self._skipped.discard(fld)
             if fld == "time":
                 self._period_pending = False
@@ -826,13 +886,14 @@ class BookingAgent:
                     continue
 
             self._asked = pending
+            k = self._ask_count.get(pending, 0)
             if not lead:
-                lead = self._echo(got)
-            if self._period_pending:
-                h = self._slots["time"]["hour"] % 12 or 12
-                q = "الساعة %s صباحاً أو مساءً؟" % _HOUR_WORD[h]
-            else:
-                q = self._ask(pending)
+                lead = self._echo(got, k)
+            q = (self._period_question(k) if self._period_pending
+                 else self._ask(pending, k))
+            if count:
+                self._ask_count[pending] = k + 1
+            dbg["ask_index"] = k
             return self._reply((lead + " " + q).strip(), t0, dbg)
 
     def _next_missing(self):
@@ -849,12 +910,11 @@ class BookingAgent:
             return ("أي معلومة تحتاج تعديل؟ "
                     "الخدمة، التاريخ، الوقت، المكان، الاسم، أو الرقم؟")
         if self._period_pending and self._slots["time"]:
-            h = self._slots["time"]["hour"] % 12 or 12
-            return "الساعة %s صباحاً أو مساءً؟" % _HOUR_WORD[h]
+            return self._period_question(self._ask_count.get("time", 0))
         nxt = self._asked if self._asked in SLOT_ORDER else self._next_missing()
         if nxt is None:
             return "تفضل، كيف أقدر أساعدك؟"
-        return self._ask(nxt)
+        return self._ask(nxt, self._ask_count.get(nxt, 0))
 
     def _ack_for(self, got):
         """One acknowledgement word, chosen by CONTENT, not by a turn counter.
@@ -873,7 +933,7 @@ class BookingAgent:
         key = "|".join("%s=%s" % (k, got[k]) for k in sorted(got))
         return ACKS[zlib.crc32(key.encode("utf-8")) % len(ACKS)]
 
-    def _echo(self, got):
+    def _echo(self, got, asked_before=0):
         """Read back a multi-slot turn compactly: 'تمام، بكرة الساعة التاسعة صباحاً.'
 
         Warm, but mainly FUNCTIONAL: it is the caller's first chance to catch a
@@ -884,7 +944,10 @@ class BookingAgent:
         if not got:
             return ack
         filled = [k for k in SLOT_ORDER if k in got]
-        if len(filled) < 2:
+        # On a RE-ask, always say what we did understand, even if it was only one
+        # thing. Re-asking is the moment the caller most needs reassuring that
+        # they were heard at all - and it is the one thing the agent got right.
+        if len(filled) < 2 and asked_before < 1:
             return ack
         parts = []
         for k in filled:
@@ -904,25 +967,26 @@ class BookingAgent:
             elif k == "phone":
                 parts.append("ورقم %s" % self._slots["phone"])
         parts = [p for p in parts if p]
-        if len(parts) < 2:
+        if not parts or (len(parts) < 2 and asked_before < 1):
             return ack
-        return "%s، %s." % (ack.rstrip("."), " ".join(parts))
+        return "%s، سجلت %s." % (ack.rstrip("."), " ".join(parts))
 
-    def _ask(self, slot):
-        if slot == "service":
-            return ("أي نوع تصوير تحتاج؟ فوتوغرافي، فيديو، مقابلة، "
-                    "أو تصوير منتجات؟")
-        if slot == "date":
-            return "في أي يوم تحب نحجز التصوير؟"
-        if slot == "time":
-            return "وأي ساعة تناسبك؟"
-        if slot == "location":
-            return "وين بيكون التصوير؟"
-        if slot == "name":
-            return "ممكن اسمك الكريم؟"
-        if slot == "phone":
-            return "وآخر شي، ممكن رقم تواصل؟"
-        return "تفضل."
+    def _ask(self, slot, asked_before=0):
+        """Phrase the question for `slot`, given how many times we already asked.
+
+        Never byte-identical two asks running: the second is short and drops the
+        option list (it was already read out), the third brings the list back.
+        """
+        forms = _ASKS.get(slot)
+        if not forms:
+            return "تفضل."
+        return forms[min(max(int(asked_before), 0), len(forms) - 1)]
+
+    def _period_question(self, asked_before=0):
+        h = self._slots["time"]["hour"] % 12 or 12
+        if asked_before >= 1:
+            return "صباحاً أو مساءً؟"
+        return "الساعة %s صباحاً أو مساءً؟" % _HOUR_WORD[h]
 
     def _offscript(self, raw, t0, dbg):
         """Rules found nothing and the caller has gone off-script.
@@ -1283,6 +1347,7 @@ class BookingAgent:
                 continue
             self._slots[k] = v
             self._attempts[k] = 0
+            self._ask_count[k] = 0       # answered: the next ask starts fresh
             self._skipped.discard(k)
         if "time" in got:
             t = self._slots["time"]
