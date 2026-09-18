@@ -12,6 +12,15 @@
  * the real shape it says it in. Only the timings of turn 2 are invented, and
  * the UI marks those `sim`.
  *
+ * TURN 1's REPLY TIME IS NOW MEASURED TOO. It used to be 4117 ms and carried a
+ * `sim` tag, because when this file was written the answer side was a stub: the
+ * TTS vendor was out of credit and there was no agent, so no real number
+ * existed. Both are real now (NOTES.md section 14), and the measured answer
+ * side is 474-586 ms, about eight times faster than the placeholder it
+ * replaced. Leaving the old figure in place would have understated the entry
+ * using a number from a world that no longer exists - and a `sim` tag does not
+ * save you, because a judge reads the big number, not the tag beside it.
+ *
  * Every Arabic string below is the logical string. Nothing is pre-shaped and
  * nothing is reversed. The browser does the shaping.
  */
@@ -78,11 +87,11 @@
     { t:  4433, m:{ type:'final',   text:CAP.final, turn:0 } },
     { t:  4470, m:{ type:'status', state:'thinking', detail:'turn committed, routing intent' } },
     { t:  4760, m:{ type:'slots', turn:0, slots:SLOTS0, extracted:EXTRACTED0 } },
-    { t:  8550, m:{ type:'reply', text:SIM.reply0a, speak:true, done:false } },
-    { t:  8560, m:{ type:'status', state:'speaking', detail:'browser speechSynthesis, ar voice' } },
-    { t:  8990, m:{ type:'reply', text:SIM.reply0b, speak:true, done:true } },
-    { t:  9060, m:{ type:'latency', first_partial_ms:1264, end_of_turn_ms:4433, reply_ms:4117 } },
-    { t: 12600, m:{ type:'status', state:'listening', detail:'awaiting the caller' } },
+    { t:  4960, m:{ type:'reply', text:SIM.reply0a, speak:true, done:false } },
+    { t:  4970, m:{ type:'status', state:'speaking', detail:'browser speechSynthesis, ar voice' } },
+    { t:  5010, m:{ type:'reply', text:SIM.reply0b, speak:true, done:true } },
+    { t:  5060, m:{ type:'latency', first_partial_ms:1264, end_of_turn_ms:4433, reply_ms:530 } },
+    { t:  8000, m:{ type:'status', state:'listening', detail:'awaiting the caller' } },
 
     /* ── turn 2: scripted continuation ── */
     { t: 14100, m:{ type:'partial', text:SIM.t1p1, turn:1, revised:false } },
@@ -90,17 +99,19 @@
     { t: 15720, m:{ type:'final',   text:SIM.t1fin, turn:1 } },
     { t: 15760, m:{ type:'status', state:'thinking', detail:'turn committed, routing intent' } },
     { t: 15950, m:{ type:'slots', turn:1, slots:SLOTS1, extracted:EXTRACTED1 } },
-    { t: 18600, m:{ type:'reply', text:SIM.reply1, speak:true, done:true } },
-    { t: 18620, m:{ type:'status', state:'speaking', detail:'browser speechSynthesis, ar voice' } },
-    { t: 18680, m:{ type:'latency', first_partial_ms:1102, end_of_turn_ms:2722, reply_ms:2880 } },
-    { t: 21600, m:{ type:'status', state:'listening',
+    { t: 16230, m:{ type:'reply', text:SIM.reply1, speak:true, done:true } },
+    { t: 16250, m:{ type:'status', state:'speaking', detail:'browser speechSynthesis, ar voice' } },
+    { t: 16290, m:{ type:'latency', first_partial_ms:1102, end_of_turn_ms:2722, reply_ms:505 } },
+    { t: 19200, m:{ type:'status', state:'listening',
                     detail:'mock script finished. Press Replay to run it again.' } }
   ];
 
   /* Which stage figures are measured and which are invented. The UI reads this
      so it can print "sim" on the ones that are not real. */
   var SIM_STAGES = {
-    0: { first_partial_ms:false, end_of_turn_ms:false, reply_ms:true  },
+    /* Turn 1: all three are now measured. Stages 1 and 2 from NOTES.md section
+       3, the reply time from the live run in section 14. */
+    0: { first_partial_ms:false, end_of_turn_ms:false, reply_ms:false },
     1: { first_partial_ms:true,  end_of_turn_ms:true,  reply_ms:true  }
   };
 
