@@ -321,6 +321,27 @@ _GREET_TOKEN = (
 FIELD_AR = {"service": "نوع التصوير", "date": "التاريخ", "time": "الوقت",
             "location": "المكان", "name": "الاسم", "phone": "الرقم"}
 
+# Hesitation noises the ASR commits as a whole turn. Most repeated-letter forms
+# (مممم, ااااا, هههه) are caught structurally below; these are the ones with real
+# distinct letters that no structural rule would flag.
+_FILLER = frozenset(_kw(
+    "يعني", "امم", "اممم", "مم", "ممم", "اه", "ااه", "اهه", "اوه",
+    "هاه", "اها", "هم", "همم", "طق", "ايش", "شو"))
+
+# Plausibility thresholds for the two slots that CANNOT be pattern-matched.
+# Deliberately permissive, because the two failure modes are not symmetric:
+#
+#   a false ACCEPT costs one wrong line in a readback the caller is about to be
+#   asked to confirm, and they can correct it;
+#   a false REJECT costs the caller their actual name, and they cannot recover
+#   by repeating it, because it will be rejected again.
+#
+# So when a case cannot be separated cleanly, it is ACCEPTED. `علي` is a real
+# name at three letters and `دبي` a real place at three, so the floor sits below
+# both rather than at some tidier number.
+MIN_FREE_TEXT_LETTERS = 3
+MIN_ARABIC_RATIO = 0.6
+
 _NAME_LEAD = _kw("اسمي هو", "اسمي", "انا اسمي", "انا", "الاسم هو", "الاسم")
 _LOC_LEAD = _kw("في", "ب", "بمنطقه", "منطقه", "المكان في", "المكان", "عند")
 _PHONE_HINT = _kw("رقمي", "الرقم", "رقم", "تلفوني", "جوالي", "موبايلي", "هاتفي")
@@ -553,6 +574,7 @@ class BookingAgent:
         self._dtoks = []
         self._pending_greeting = None
         self._ask_count = {}
+        self._rejected = []
 
     @property
     def slots(self):
@@ -738,6 +760,7 @@ class BookingAgent:
         # Greeting first, and REMOVED from the text the slot extractor sees.
         # Otherwise "مساء الخير" hands the period detector a bare `مساء` and the
         # agent books the shoot for 6pm because the caller said good evening.
+        self._rejected = []
         self._pending_greeting, n = self._greeting_strip(n)
         dbg = {"heard": raw, "state_in": self._state, "asked": self._asked}
         if self._pending_greeting:
@@ -786,6 +809,17 @@ class BookingAgent:
                 # not apologise for not understanding, and do not spend a strike.
                 dbg["intent"] = "greeting"
                 return self._advance(t0, dbg, count=False)
+            if self._rejected:
+                # Heard something, but it was not a believable place or name.
+                # Say so rather than storing it AND rather than silently
+                # dropping it - and let it consume an ask, so the escalation
+                # path still terminates instead of looping "sorry, say again".
+                r0 = self._rejected[0]
+                dbg["intent"] = "implausible"
+                dbg["rejected"] = list(self._rejected)
+                return self._advance(
+                    t0, dbg,
+                    prefix="عفواً، ما التقطت %s." % FIELD_AR[r0["slot"]])
             return self._offscript(raw, t0, dbg)
 
         dbg["intent"] = "slots"
@@ -1223,6 +1257,48 @@ class BookingAgent:
             explicit = True
         return {"hour": hour, "minute": minute, "explicit_period": explicit}
 
+    def _implausible(self, cand):
+        """Why `cand` is not a believable place or person name, or None if it is.
+
+        A PLAUSIBILITY test, not a whitelist. A list of UAE place names would
+        reject a real address, and rejecting something real is the worse error
+        here: a wrong location is one line in a readback the caller is about to
+        be asked to confirm, but a rejected name cannot be recovered by the
+        caller repeating it, because it will be rejected again.
+
+        Everything below is therefore a structural property of noise, not a
+        judgement about meaning. Anything that is merely unusual is ACCEPTED.
+        """
+        t = (cand or "").strip()
+        if not t:
+            return "empty"
+        letters = _ARABIC_LETTER.findall(t)
+        if len(letters) < MIN_FREE_TEXT_LETTERS:
+            # `علي` and `دبي` are three letters, so the floor sits below them.
+            return "too short (%d Arabic letters)" % len(letters)
+        nonspace = [c for c in t if not c.isspace()]
+        if nonspace and (len(letters) / float(len(nonspace))) < MIN_ARABIC_RATIO:
+            return "mostly not Arabic letters"
+        toks = _toks(t)
+        if toks and set(toks) <= _FILLER:
+            return "hesitation word"
+        if len(toks) == 1:
+            w = toks[0]
+            # Filler noise transcribes as one unit repeated: مممم, ااااا, هههه,
+            # بلابلابلا. Requiring THREE or more repeats keeps real reduplicated
+            # Arabic words (زلزل, سلسل - unit repeated twice) out of the net.
+            for u in (1, 2, 3):
+                if len(w) >= u * 3 and len(w) % u == 0 and w == w[:u] * (len(w) // u):
+                    return "repeated syllable %r" % w[:u]
+        if self._service(t):
+            # They are still answering the PREVIOUS question, not this one.
+            return "an option from the previous question"
+        return None
+
+    def _reject(self, slot, cand, why):
+        self._rejected.append({"slot": slot, "heard": cand, "why": why})
+        return None
+
     def _disp_of(self, sub):
         """Map a normalised substring back to the caller's own spelling."""
         st = _toks(sub)
@@ -1248,7 +1324,10 @@ class BookingAgent:
         if (not structured and self._asked == "location"
                 and self._polarity(n) is None):
             free = self._strip_lead(n, _LOC_LEAD)
-            if free and len(_toks(free)) <= 6 and not re.search(r"\d", _digits(free)):
+            if free and len(_toks(free)) <= 6:
+                why = self._implausible(free)
+                if why:
+                    return self._reject("location", free, why)
                 return self._disp_of(free)
         return None
 
@@ -1262,8 +1341,10 @@ class BookingAgent:
         else:
             return None
         cand = cand.strip()
-        if not cand or re.search(r"\d", _digits(cand)):
+        if not cand:
             return None
+        if re.search(r"\d", _digits(cand)):
+            return self._reject("name", cand, "a name does not contain digits")
         toks = _toks(cand)
         if not (1 <= len(toks) <= 4):
             return None
@@ -1271,6 +1352,9 @@ class BookingAgent:
             return None
         if self._service(cand) or self._date(cand) or self._period(cand):
             return None
+        why = self._implausible(cand)
+        if why:
+            return self._reject("name", cand, why)
         return self._disp_of(cand)
 
     def _has_lead(self, n, leads):

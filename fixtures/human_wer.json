@@ -1,0 +1,125 @@
+{
+  "measured_at": "2026-09-18",
+  "paced_at_real_time": true,
+  "normalisations": [
+    "NFC compose",
+    "strip tashkeel and Quranic marks (U+0610-061A, U+064B-065F, U+0670, U+06D6-06ED)",
+    "strip tatweel U+0640",
+    "alef forms: أ إ آ ٱ -> ا",
+    "alef maqsura: ى -> ي",
+    "ta marbuta: ة -> ه",
+    "Arabic-Indic digits ٠-٩ and ۰-۹ -> ASCII 0-9",
+    "drop every Unicode punctuation codepoint (category P*)",
+    "collapse whitespace"
+  ],
+  "sources": {
+    "fleurs": {
+      "dataset": "google/fleurs",
+      "config": "ar_eg",
+      "split": "test",
+      "licence": "CC BY 4.0",
+      "kind": "read Modern Standard Arabic, Egyptian speakers, clean single-speaker recordings",
+      "reference_field": "raw_transcription",
+      "note": "FLEURS ships two references: raw_transcription with punctuation and original orthography, and transcription already lowercased and stripped. raw_transcription is used here so the raw WER is genuinely raw."
+    },
+    "casablanca": {
+      "dataset": "UBC-NLP/Casablanca",
+      "config": "UAE",
+      "split": "test",
+      "licence": "CC BY-NC-ND 4.0",
+      "kind": "spontaneous Emirati dialect from television, real conversation and background audio",
+      "reference_field": "transcription",
+      "note": "Non-commercial, no-derivatives. Audio is never committed and the committed JSON carries excerpts only."
+    }
+  },
+  "summary": {
+    "fleurs": {
+      "corpus": "fleurs",
+      "clips": 1,
+      "audio_seconds": 8.2,
+      "empty_hypotheses": 0,
+      "wer_raw": {
+        "sub": 5,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 5,
+        "wer": 0.3333
+      },
+      "wer_normalised": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 3,
+        "wer": 0.2
+      },
+      "wer_normalised_alt_reference": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 3,
+        "wer": 0.2
+      },
+      "median_per_clip_wer_normalised": 0.2,
+      "worst_per_clip_wer_normalised": 0.2,
+      "best_per_clip_wer_normalised": 0.2,
+      "corruption_totals": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits_total": 0,
+      "ref_ascii_digits_total": 0
+    }
+  },
+  "rows": [
+    {
+      "corpus": "fleurs",
+      "offset": 0,
+      "clip_id": "1993",
+      "seconds": 8.16,
+      "sha256": "4bdd2e6dec2d8a3b",
+      "turns": 1,
+      "elapsed_s": 13.59,
+      "errors": [],
+      "ref": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري.",
+      "hyp": "تشكلت في المحيط الأطلسي اليوم عشر عاصفة مسمى لموسم الأعصير الأطلسية العاصفة شبه الاستوائية جيري",
+      "ref_full_withheld": false,
+      "ref_words": 15,
+      "hyp_words": 15,
+      "wer_raw": {
+        "sub": 5,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 5,
+        "wer": 0.3333
+      },
+      "wer_norm": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 3,
+        "wer": 0.2
+      },
+      "corruption": {
+        "presentation_forms": 0,
+        "bidi_controls": 0,
+        "replacement_char": 0
+      },
+      "hyp_ascii_digits": 0,
+      "ref_ascii_digits": 0,
+      "wer_norm_alt_ref": {
+        "sub": 3,
+        "del": 0,
+        "ins": 0,
+        "ref_words": 15,
+        "errors": 3,
+        "wer": 0.2
+      }
+    }
+  ]
+}

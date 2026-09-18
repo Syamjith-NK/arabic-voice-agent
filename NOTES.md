@@ -555,6 +555,58 @@ caller who said nothing has not been asked twice.
 Escalation still terminates the loop: the phrasings vary, then after
 `MAX_ATTEMPTS` the slot is handed to a human.
 
+### Free-text slots now need to be plausible
+
+`location` and `name` are the only two slots that cannot be pattern-matched, so
+they used to accept whatever the caller said. A judge mumbling into a microphone
+got `مممم` stored and read back as **`في مممم`** in the confirmation.
+
+The bar is **plausibility, not a whitelist**. A list of UAE place names would
+reject a real address, which is the worse failure, because the two errors are not
+symmetric: a false ACCEPT is one line in a readback the caller is immediately
+asked to confirm, while a false REJECT takes the caller's real name and cannot be
+recovered by them repeating it - it will just be rejected again. So anything that
+cannot be separated cleanly is ACCEPTED, and the rules are structural properties
+of noise rather than judgements about meaning:
+
+| Rejected | Why |
+|---|---|
+| `اه` `مم` `آه` | fewer than 3 Arabic letters |
+| `xyz` `123` | mostly not Arabic letters |
+| `مممم` `ااااا` `هههه` `بلابلابلا` | one unit repeated 3+ times |
+| `يعني` `اممم` | hesitation word |
+| `فيديو` at the location prompt | an option from the PREVIOUS question |
+
+The floor sits at **three letters** because `علي` is a real name and `دبي` a real
+emirate at exactly three. `مدينة خليفة`, `الخالدية`, `جميرا`, `مصفح`,
+`شارع المطار`, `عبدالله بن زايد` and `منى` all pass, and are asserted to.
+
+Requiring **three or more** repeats (not two) is what keeps genuinely reduplicated
+Arabic words like `زلزل` out of the net.
+
+A rejected value is neither stored nor silently dropped: the agent says
+`عفواً، ما التقطت المكان.` and the turn **consumes an ask**, so the graded re-ask
+still varies the phrasing and the escalation path still terminates rather than
+looping "sorry, say again" forever. The test asserts the symptom the caller would
+actually see - that a rejected value can never appear in the readback - not just
+the internal slot state.
+
+**Two things this exposed while being built:**
+
+- `_location` had a blanket digit veto that pre-empted the new check, so `123`
+  was refused with the wrong message and no recorded reason, and a legitimate
+  `شارع 5` was refused outright. Removed: a phone number spoken at the location
+  prompt is already claimed by `_phone` before this code runs. `name` keeps a
+  digit veto, since a name has no digits, but now reports it like every other
+  rejection.
+- The readback test initially passed for the wrong reason on the `name` slot: it
+  rejected the name four times and then supplied a real one, so of course the
+  confirmation was clean. Mutation testing is what surfaced it.
+
+Six mutations, all caught - including **raising the floor from 3 to 5**, which
+fails 19 checks. That one matters most: it proves the suite catches
+OVER-rejection, not only under-rejection.
+
 ### Orthographic variation is handled by folding, and now proven
 
 `number_e2e.py` measured the live API returning real spelling variation
@@ -583,12 +635,10 @@ the mutated code does before believing its verdict.
   would still place it as a machine, just several turns later and less jarringly.
 - **The LLM clarification stacks two questions** ("ما هي الخدمات التي ترغب...؟
   أي نوع تصوير تحتاج؟"). Safe, redundant, slightly clumsy on a phone line.
-- **Free-text slots accept anything.** With `location` or `name` pending, a
-  filler noise like `مممم` is stored as the location. Visible in the demo if a
-  judge mumbles. The structured slots (service, date, time, phone) are immune
-  because they must match a pattern; the two free-text ones cannot be, without a
-  plausibility check that does not exist yet. This is the most demo-visible
-  defect still open.
+- **Free-text plausibility is structural, so a plausible-looking wrong answer
+  still gets through.** `الشارع` or a misheard real word passes every rule here,
+  because nothing checks that a string denotes an actual place or person. The
+  readback is the only thing standing between that and a wrong booking.
 - **No availability check, no calendar, no persistence.** The agent will happily
   confirm a slot that is already booked; `done: true` writes nothing anywhere.
 - **Dialect coverage is a keyword list**, tested against phrasing I wrote myself.

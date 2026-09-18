@@ -20,8 +20,15 @@ runs/
 *.log
 latency_*.jsonl
 
+# Corpus audio for human_wer.py: third-party clips, one of them under a
+# no-derivatives licence. Cached locally, never committed. The full-text run
+# record lives in here too, for the same reason.
+audio_cache/
+
 # macOS
 .DS_Store
 
 # internal machine inventory - never publish
 ASSETS.md
+
+deck/pages/

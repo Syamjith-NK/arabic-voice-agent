@@ -1090,8 +1090,119 @@ def t_ask_count_is_conversation_state():
             check("ask_count survives %r" % (str(st)[:34],), False, repr(e))
 
 
+def _at(slot):
+    """An agent parked with `slot` as the pending free-text question."""
+    ag = new()
+    ag.greet()
+    ag.handle("تصوير فيديو")
+    ag.handle("بكرة")
+    ag._slots["time"] = {"hour": 9, "minute": 0, "explicit_period": True}
+    ag._period_pending = False
+    if slot == "name":
+        ag._slots["location"] = "دبي"
+        ag._asked = "name"
+    else:
+        ag._asked = "location"
+    return ag
+
+
+def t_free_text_plausibility():
+    """`location` and `name` cannot be pattern-matched, so they used to accept
+    anything - a judge mumbling `مممم` got it stored and read back as `في مممم`.
+
+    The bar is PLAUSIBILITY, not a whitelist of place names, and it is set low
+    on purpose: a false accept is one correctable line in the readback, a false
+    reject takes the caller's real name and cannot be recovered by repeating it.
+    """
+    # --- must ACCEPT. Over-rejecting is its own defect. ---
+    for v in ("دبي", "العين", "الشارقة", "عجمان", "أم القيوين", "رأس الخيمة",
+              "الفجيرة", "مدينة خليفة", "الخالدية", "جميرا", "مصفح",
+              "منطقة الخليج التجاري", "شارع المطار"):
+        ag = _at("location")
+        got = ag.handle(v).slots["location"]
+        check("location accepted: %s" % v, got is not None, "rejected %r" % v)
+    for v in ("علي", "خالد", "منى", "نور", "سارة", "أحمد المنصوري",
+              "عبدالله بن زايد", "محمد"):
+        ag = _at("name")
+        got = ag.handle(v).slots["name"]
+        check("name accepted: %s" % v, got is not None, "rejected %r" % v)
+
+    # Three letters is a real Arabic name and a real emirate. The floor must sit
+    # below both, or the threshold is the bug.
+    check("the length floor admits 3-letter words",
+          agent.MIN_FREE_TEXT_LETTERS <= 3, agent.MIN_FREE_TEXT_LETTERS)
+
+    # --- must REJECT ---
+    noise = (("مممم", "repeated"), ("ااااا", "repeated"), ("هههه", "repeated"),
+             ("ممممممم", "repeated"), ("بلابلابلا", "repeated"),
+             ("يعني", "hesitation"), ("اممم", "hesitation"),
+             ("اه", "too short"), ("آه", "too short"), ("مم", "too short"),
+             ("xyz", "not Arabic"), ("123", "not Arabic"))
+    for v, _why in noise:
+        for slot in ("location", "name"):
+            ag = _at(slot)
+            r = ag.handle(v)
+            check("%s rejects %r" % (slot, v), r.slots[slot] is None,
+                  "stored %r" % r.slots[slot])
+            check("%s says it did not catch %r" % (slot, v),
+                  r.debug["intent"] == "implausible"
+                  and "ما التقطت" in r.text, r.text[:60])
+            check("%s records WHY it rejected %r" % (slot, v),
+                  bool(r.debug.get("rejected")), r.debug.get("rejected"))
+
+    # An option word from the previous question is not a location.
+    ag = _at("location")
+    r = ag.handle("فيديو")
+    check("an echoed option word is not stored as a location",
+          r.slots["location"] is None, r.slots["location"])
+
+    # --- the actual user-visible symptom: it must never reach the readback ---
+    for slot in ("location", "name"):
+        ag = _at(slot)
+        for _ in range(4):
+            ag.handle("مممم")
+        if slot != "name":
+            # Supplying a name here would FILL the very slot we just watched get
+            # rejected, and the assertion below would pass for the wrong reason.
+            ag.handle("اسمي خالد")
+        r = ag.handle("0501234567")
+        check("readback reached after rejected %s" % slot,
+              "خليني أأكد الحجز" in r.text, r.text[:60])
+        check("REJECTED VALUE NEVER APPEARS IN THE READBACK (%s)" % slot,
+              "مممم" not in r.text, r.text)
+        check("the readback admits the %s is unconfirmed" % slot,
+              "بيتأكد لاحقاً" in r.text, r.text)
+        check("and it is not stored anywhere in the slots",
+              "مممم" not in json.dumps(ag.slots, ensure_ascii=False), ag.slots)
+
+    # --- and it must not become an infinite "sorry, say again" ---
+    ag = _at("location")
+    seen = []
+    for _ in range(5):
+        r = ag.handle("مممم")
+        seen.append(r.text)
+    check("rejection still escalates and terminates",
+          "location" in r.debug.get("skipped", []), r.debug)
+    check("the re-asks are rephrased, not repeated verbatim",
+          len(set(seen[:2])) == 2, seen[:2])
+
+    # A rejection must not corrupt what was already collected.
+    ag = _at("location")
+    before = json.dumps(ag.slots, ensure_ascii=False, sort_keys=True)
+    ag.handle("مممم")
+    after = json.dumps(ag.slots, ensure_ascii=False, sort_keys=True)
+    eq("a rejected turn changes no other slot", after, before)
+
+    # A good value straight after a rejection still works.
+    ag = _at("location")
+    ag.handle("مممم")
+    eq("recovery after a rejection", ag.handle("الشارقة").slots["location"],
+       "الشارقة")
+
+
 TESTS = {
     "happy": t_happy,
+    "plausible": t_free_text_plausibility,
     "reask": t_reask_is_rephrased,
     "askcount": t_ask_count_is_conversation_state,
     "greetings": t_greetings,
