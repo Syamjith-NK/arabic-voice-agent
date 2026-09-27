@@ -66,8 +66,22 @@
     <button class="btn btn-primary" id="btnStart">Start microphone</button>
     <button class="btn" id="btnStop" disabled>Stop</button>
     <button class="btn" id="btnReset" disabled>Reset turn</button>
+    <!-- Replay mode already existed behind ?mock=1, and nobody was ever going to
+         guess that. Someone opening this on a conference floor, on a phone, or
+         with the microphone declined would see three empty panels and leave.
+         The replay is the REAL captured session, so this is not a lesser demo. -->
+    <a class="btn btn-replay" id="btnReplay" href="?mock=1">No microphone? Play a real recorded session</a>
     <span class="controls-note" id="endpointNote"></span>
   </div>
+  <script>
+    /* Already replaying? Then the invitation to replay is noise. Inline and
+       immediate rather than in app.js, so the button never flashes on screen
+       before being removed. */
+    if (new URLSearchParams(location.search).get('mock') === '1') {
+      var _r = document.getElementById('btnReplay');
+      if (_r) _r.remove();
+    }
+  </script>
 
   <!-- ─────────────────────────  latency strip  ───────────────────────── -->
   <section class="panel strip-panel">

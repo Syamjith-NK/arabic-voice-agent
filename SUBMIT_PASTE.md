@@ -11,6 +11,7 @@ Deadline **30 Sep 2026, 19:00 GST**. All links verified live on 27 Sep.
 |---|---|
 | GitHub repo | `https://github.com/Syamjith-NK/arabic-voice-agent` |
 | Live demo | `https://arabic-voice-agent-nu.vercel.app` |
+| Demo, no microphone needed | `https://arabic-voice-agent-nu.vercel.app/?mock=1` |
 | Video (90 s) | `https://arabic-voice-agent-nu.vercel.app/video.mp4` |
 | Slide deck (PDF) | `https://arabic-voice-agent-nu.vercel.app/deck.pdf` |
 
@@ -32,10 +33,17 @@ Arabic Voice Agent
 A real-time Gulf-Arabic booking agent on AssemblyAI streaming STT, built from measurements rather than assumptions about what Arabic does differently.
 ```
 
+**Worth saying in the submission body:** the demo has a **"No microphone?"** button that
+replays the *real captured session* from `fixtures/v3_session_arabic.jsonl`, including the
+live partial revision. A judge on a conference floor, on a phone, or who declines microphone
+access still sees the whole thing work, with measured latencies rather than invented ones.
+
 ## What it does
 
 ```
 It books a photography shoot over the phone, in spoken Gulf Arabic, in real time.
+If you cannot use a microphone where you are, press "No microphone? Play a real recorded
+session" - it replays a genuine captured session, revision and measured timings included.
 
 You speak; it transcribes with AssemblyAI's v3 streaming API, extracts the service, date,
 time and location as you say them, asks only for what is still missing, and confirms back in

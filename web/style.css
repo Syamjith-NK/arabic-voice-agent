@@ -217,6 +217,16 @@ h1{
 }
 .btn-primary:hover:not(:disabled){ background:#63e2c6; border-color:#63e2c6; }
 
+/* The replay entry point. It is an <a>, so it needs the line-height and
+   text-decoration reset that a <button> gets for free, or it sits a pixel or
+   two off the baseline of the real buttons beside it. Deliberately not
+   btn-primary: starting the microphone is still the main action. */
+.btn-replay{
+  text-decoration:none; line-height:normal; display:inline-flex; align-items:center;
+  border-style:dashed; color:var(--txt-2);
+}
+.btn-replay:hover{ color:var(--txt); border-style:solid; border-color:var(--accent); }
+
 .controls-note{
   font-family:var(--mono); font-size:11px; color:var(--txt-3);
   margin-left:2px;
