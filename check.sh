@@ -35,7 +35,20 @@ printf '\033[1mArabic realtime voice agent - full check\033[0m\n'
 printf 'python: %s\n' "$(python3 --version 2>&1)"
 
 # ---- offline: no API key, no network, no spend -----------------------------
-run "streaming client + replay"                  python3 selftest.py
+# selftest.py imports `websockets`, one of this repo's two non-stdlib dependencies.
+# A missing dependency is NOT a failing test: it means the reader has not run
+# `pip install -r requirements.txt` yet. Printing a red FAILED for that makes a
+# working repo look broken on the very first command anyone runs, which is the
+# worst possible first impression and is not even true. Skip it, and say exactly
+# how to fix it -- the same way the serverless suite below skips without a key.
+if python3 -c 'import websockets' 2>/dev/null; then
+  run "streaming client + replay"                python3 selftest.py
+else
+  printf '\n\033[1m== streaming client + replay\033[0m\n'
+  printf '   skipped: the `websockets` module is not installed.\n'
+  printf '   pip install -r requirements.txt\n'
+fi
+
 run "Arabic number parser"                       python3 test_arabic_numbers.py
 run "booking agent"                              python3 test_agent.py
 

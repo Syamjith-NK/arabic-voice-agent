@@ -11,9 +11,14 @@ it cannot silently stop being true. Nothing in this README is quoted from
 documentation.
 
 ```sh
+pip install -r requirements.txt   # two packages: websockets, numpy
 ./check.sh          # every suite, no API key needed, exits non-zero on failure
 ./check.sh --live   # also the ones that open a real socket
 ```
+
+`./check.sh` runs without the install too: the one suite that needs `websockets`
+reports itself skipped rather than failed, because a dependency you have not
+installed yet is not a broken repository.
 
 ---
 

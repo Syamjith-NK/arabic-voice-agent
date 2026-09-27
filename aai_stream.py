@@ -258,8 +258,16 @@ class Turn:
         )
 
 
-OnTurn = Callable[[Turn], None | Awaitable[None]]
-OnEvent = Callable[[str, dict], None | Awaitable[None]]
+# Spelled with Optional[] rather than `None | Awaitable[None]` on purpose, and
+# please leave it that way. `from __future__ import annotations` above makes every
+# *annotation* in this file a string, so PEP 604 unions are free there -- but these
+# two are module-level ALIASES, which are evaluated the moment the module is
+# imported. On Python 3.9 that raises TypeError, and 3.9 is what macOS ships as
+# `python3`, so the whole repo failed to import for anyone who cloned it and ran
+# the system interpreter. Identical meaning, four more characters, one less way to
+# be broken on someone else's machine.
+OnTurn = Callable[[Turn], Optional[Awaitable[None]]]
+OnEvent = Callable[[str, dict], Optional[Awaitable[None]]]
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,20 @@
+# Runtime dependencies. There are two.
+#
+# Everything else in this repo is standard library, deliberately: the agent, the
+# Arabic number parser, the HTTP handlers and the serverless functions all run on
+# a bare Python with nothing installed. These two are needed only where they earn
+# their place.
+#
+#   websockets  the AssemblyAI v3 streaming client speaks WebSocket, which the
+#               standard library does not. Used by selftest.py, aai_stream.py,
+#               multiturn_probe.py, number_e2e.py and latency.py.
+#   numpy       generating and resampling the PCM test audio. Not used at request
+#               time by anything the deployed demo runs.
+#
+#   pip install -r requirements.txt
+#
+# Lower bounds only, no upper pins: this is a demo that strangers clone, and a
+# pin that has gone stale is a worse failure than a minor version drift.
+
+websockets>=12.0
+numpy>=1.24
