@@ -124,9 +124,25 @@ Repo, demo and content:
 - [x] Demo deployed to a URL that is up without any of our machines: **https://arabic-voice-agent-nu.vercel.app**
 - [x] Video BUILT, 90 s, needs no narration (deck/SUBMISSION_VIDEO.mp4). Assembled from the deck pages, a real capture of the LIVE demo, and measurement cards. Narration can be laid over it later without rebuilding.
 - [x] Deck built (deck/ARABIC_VOICE_AGENT.pdf, 10 slides, derives its own test counts by running the suites)
+- [x] **Video and deck served from the demo origin** with correct content types, so the form gets a
+      link that opens rather than a GitHub raw URL that downloads:
+      `/video.mp4` (video/mp4) and `/deck.pdf` (application/pdf), both verified 200 on production.
+- [x] **A judge with no microphone can still see it work.** Replay mode existed behind `?mock=1`
+      and was undiscoverable; there is now a visible "No microphone?" button. It replays the REAL
+      captured session with measured timings, and hides itself when already replaying.
+- [x] **Runs on the Python macOS ships.** Two module-level PEP 604 aliases made the repo fail to
+      import on 3.9 — a judge cloning it on a Mac got a traceback before any test ran. Fixed, plus
+      the missing `requirements.txt`. Green on 3.9.6 and 3.14.7: 825 checks with no API key.
+- [x] **Deliverables integrity-checked**, not just listed: video decodes end to end (2250 frames,
+      90 s, 1080p h264), PDF valid with 10 pages.
+- [x] **Form answers written out** in `SUBMIT_PASTE.md` — every field, ready to paste.
 - [ ] Submitted on lablab
 
-Owner-only, cannot be done from here:
+Owner-only, and the block was **measured on 2026-09-28, not assumed**: no browser profile on
+this machine holds a GitHub or lablab cookie (Google Chrome is not installed; only
+Chrome-for-Testing profiles created by tooling), and `gh` holds an API token — `gho_`, scopes
+`gist/read:org/repo` — which cannot carry a browser OAuth flow. lablab's only door is
+"Sign in with GitHub" in a browser, and no password exists on the account.
 
 - [ ] **AssemblyAI account via the event's credit-grant link** (`assemblyai.com/dashboard/signup?utm_campaign=lablab_virtual_hackathon`). Accept cookies during that signup or the credits do not attach. A company address such as `support@genviz.app` qualifies.
 - [ ] **Join the lablab Discord.** The rules require it separately from registering on the site.
